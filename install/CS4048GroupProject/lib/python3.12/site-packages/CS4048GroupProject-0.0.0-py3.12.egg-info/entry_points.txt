@@ -1,2 +1,0 @@
-[console_scripts]
-traffic = CS4048GroupProject.traffic:main

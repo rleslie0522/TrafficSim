@@ -1,0 +1,40 @@
+running egg_info
+creating build/CS4048GroupProject/CS4048GroupProject.egg-info
+writing build/CS4048GroupProject/CS4048GroupProject.egg-info/PKG-INFO
+writing dependency_links to build/CS4048GroupProject/CS4048GroupProject.egg-info/dependency_links.txt
+writing entry points to build/CS4048GroupProject/CS4048GroupProject.egg-info/entry_points.txt
+writing requirements to build/CS4048GroupProject/CS4048GroupProject.egg-info/requires.txt
+writing top-level names to build/CS4048GroupProject/CS4048GroupProject.egg-info/top_level.txt
+writing manifest file 'build/CS4048GroupProject/CS4048GroupProject.egg-info/SOURCES.txt'
+reading manifest file 'build/CS4048GroupProject/CS4048GroupProject.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file 'build/CS4048GroupProject/CS4048GroupProject.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/build/CS4048GroupProject/build
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/build/CS4048GroupProject/build/lib
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/build/CS4048GroupProject/build/lib/CS4048GroupProject
+copying CS4048GroupProject/__init__.py -> /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/build/CS4048GroupProject/build/lib/CS4048GroupProject
+copying CS4048GroupProject/traffic.py -> /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/build/CS4048GroupProject/build/lib/CS4048GroupProject
+running install
+running install_lib
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/lib/python3.12/site-packages/CS4048GroupProject
+copying /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/build/CS4048GroupProject/build/lib/CS4048GroupProject/__init__.py -> /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/lib/python3.12/site-packages/CS4048GroupProject
+copying /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/build/CS4048GroupProject/build/lib/CS4048GroupProject/traffic.py -> /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/lib/python3.12/site-packages/CS4048GroupProject
+byte-compiling /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/lib/python3.12/site-packages/CS4048GroupProject/__init__.py to __init__.cpython-312.pyc
+byte-compiling /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/lib/python3.12/site-packages/CS4048GroupProject/traffic.py to traffic.cpython-312.pyc
+running install_data
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share/ament_index
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share/ament_index/resource_index
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share/ament_index/resource_index/packages
+copying resource/CS4048GroupProject -> /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share/ament_index/resource_index/packages
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share/CS4048GroupProject
+copying package.xml -> /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share/CS4048GroupProject
+creating /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share/CS4048GroupProject/launch
+copying launch/traffic_launch.py -> /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/share/CS4048GroupProject/launch
+running install_egg_info
+Copying build/CS4048GroupProject/CS4048GroupProject.egg-info to /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/lib/python3.12/site-packages/CS4048GroupProject-0.0.0-py3.12.egg-info
+running install_scripts
+Installing traffic script to /home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/install/CS4048GroupProject/lib/CS4048GroupProject
+writing list of installed files to '/home/calvinearnshaw/ros2_ws/src/CS4048GroupProject/build/CS4048GroupProject/install.log'

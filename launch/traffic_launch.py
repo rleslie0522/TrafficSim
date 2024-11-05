@@ -11,7 +11,7 @@ def generate_launch_description():
         ),
         Node(
             package='pyrobosim_ros',  # Replace with the actual package name if different
-            executable='demo.py',  # Replace with the actual executable name for Pyrobosim
+            executable='prs_worldinit.py',  # Replace with the actual executable name for Pyrobosim
             name='pyrobosim',  # Give the node a name
             output='screen',  # Output logs to the screen
             parameters=[{

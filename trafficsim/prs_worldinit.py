@@ -6,6 +6,7 @@
     DESIGNED AND WRITTEN BY GROUP XXX IN 2024
 """
 
+
 import os
 import numpy as np
 
@@ -30,8 +31,20 @@ def create_world():
 
     world = World()
 
+    r1coords = [(100, 100), (100, 0), (0,0)]
+    world.add_room(name="EDB_EDINBURGH", footprint=r1coords, color=[0, 0, 0])
+
+    robot = Robot(
+        name="1F37_ABD-EDB",
+        radius=2,
+        path_executor=ConstantVelocityExecutor(),
+    )
+
+    world.add_robot(robot, loc="EDB_EDINBURGH")
+
     return world
 
 if __name__ == "__main__":
     world = create_world()
     start_gui(world)
+    

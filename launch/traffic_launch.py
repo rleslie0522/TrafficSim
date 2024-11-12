@@ -10,12 +10,12 @@ def generate_launch_description():
             executable="traffic"
         ),
         Node(
-            package='pyrobosim_ros',  # Replace with the actual package name if different
-            executable='prs_worldinit.py',  # Replace with the actual executable name for Pyrobosim
-            name='pyrobosim',  # Give the node a name
-            output='screen',  # Output logs to the screen
+            package='pyrobosim_ros',
+            executable='prs_worldinit.py',
+            name='pyrobosim',
+            output='screen',
             parameters=[{
-                'use_sim_time': True  # Enables the use of simulated time if needed
+                'use_sim_time': True
             }]
         )
     ])

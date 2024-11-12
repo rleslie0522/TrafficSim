@@ -1,3 +1,8 @@
+# :warning: IMPORTANT - Read below:
+Cloning this folder will create a folder named `CS4048_GroupProject` on your system. If this happens, you must type the following to correct the name of the folder to match the package name:
+`cd /path/to/parent/of/CS4048_GroupProject`
+`mv CS4048_GroupProject trafficsim`
+
 ## Build Instructions
 1. Ensure you are in your ROS 2 Workspace - e.g. `cd ~/ros2_ws`
 2. Type `cp ~/ros2_ws/src/trafficsim/trafficsim/prs_worldinit.py ~/ros2_ws/install/pyrobosim_ros/lib/pyrobosim_ros` (**:warning: WARNING :warning:** - you may need to alter the destination path based on the location of your Pyrobosim installation directory)

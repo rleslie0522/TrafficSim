@@ -1,7 +1,14 @@
+## Dependencies
+1. This project is build for Ubuntu Linux - Noble Numbat (24.04)
+2. [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html) - Build according to docs
+3. [Pyrobosim](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html) - Build according to docs
+  1. Type `source ./setup/source_pyrobosim.bash` to source the virtual environment before any steps below
+
 # :warning: IMPORTANT - Read below:
 Cloning this folder will create a folder named `CS4048_GroupProject` on your system. If this happens, you must type the following to correct the name of the folder to match the package name:
-`cd /path/to/parent/of/CS4048_GroupProject`
-`mv CS4048_GroupProject trafficsim`
+1. `cd /path/to/parent/of/CS4048_GroupProject`
+2. `mv CS4048_GroupProject/ trafficsim/`
+3. `mv trafficsim/ path/to/ros2_ws/src`
 
 ## Build Instructions
 1. Ensure you are in your ROS 2 Workspace - e.g. `cd ~/ros2_ws`

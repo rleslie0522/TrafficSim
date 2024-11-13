@@ -1,0 +1,6 @@
+source;share/trafficsim/hook/pythonpath.ps1
+source;share/trafficsim/hook/pythonpath.dsv
+source;share/trafficsim/hook/pythonpath.sh
+source;share/trafficsim/hook/ament_prefix_path.ps1
+source;share/trafficsim/hook/ament_prefix_path.dsv
+source;share/trafficsim/hook/ament_prefix_path.sh

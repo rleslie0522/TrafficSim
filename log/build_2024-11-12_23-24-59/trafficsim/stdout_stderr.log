@@ -1,0 +1,28 @@
+running egg_info
+writing build/trafficsim/trafficsim.egg-info/PKG-INFO
+writing dependency_links to build/trafficsim/trafficsim.egg-info/dependency_links.txt
+writing entry points to build/trafficsim/trafficsim.egg-info/entry_points.txt
+writing requirements to build/trafficsim/trafficsim.egg-info/requires.txt
+writing top-level names to build/trafficsim/trafficsim.egg-info/top_level.txt
+reading manifest file 'build/trafficsim/trafficsim.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file 'build/trafficsim/trafficsim.egg-info/SOURCES.txt'
+running build
+running build_py
+copying trafficsim/prs_worldinit.py -> /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/build/lib/trafficsim
+running install
+running install_lib
+copying /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/build/lib/trafficsim/prs_worldinit.py -> /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages/trafficsim
+byte-compiling /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages/trafficsim/prs_worldinit.py to prs_worldinit.cpython-312.pyc
+  File "/home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages/trafficsim/prs_worldinit.py", line 32
+    "DEE_DUNDEE": (-2.9780, 56.4566)
+    ^^^^^^^^^^^^
+SyntaxError: invalid syntax
+
+running install_data
+running install_egg_info
+removing '/home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages/trafficsim-0.0.0-py3.12.egg-info' (and everything under it)
+Copying build/trafficsim/trafficsim.egg-info to /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages/trafficsim-0.0.0-py3.12.egg-info
+running install_scripts
+Installing traffic script to /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/trafficsim
+writing list of installed files to '/home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/install.log'

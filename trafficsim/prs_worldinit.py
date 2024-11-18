@@ -104,17 +104,18 @@ def create_world():
         world.add_hallway(room_start=start, room_end=end, name=name, width=2)
     
     # RRT Path Planner - from demo.py
-    planner_config = {
-        "world": world,
-        "bidirectional": True,
-        "rrt_connect": False,
-        "rrt_star": True,
-        "collision_check_step_dist": 0.025,
-        "max_connection_dist": 25.0,
-        "rewire_radius": 1.5,
-        "compress_path": False,
-    }
-    path_planner = RRTPlanner(**planner_config)
+    #planner_config = {
+    #    "world": world,
+    #    "bidirectional": True,
+    #    "rrt_connect": False,
+    #    "rrt_star": True,
+    #    "collision_check_step_dist": 0.025,
+    #    "max_connection_dist": 25.0,
+    #    "rewire_radius": 1.5,
+    #    "compress_path": False,
+    #}
+    path_planner = AStarPlanner(world=world,grid_resolution=0.5,grid_inflation_radius=0.1,heuristic="euclidean",diagonal_motion=True,compress_path=True)
+    path_planner.latest_path = None
 
     # Add trains to network.
     robot = Robot(

@@ -114,7 +114,7 @@ def create_world():
     #    "rewire_radius": 1.5,
     #    "compress_path": False,
     #}
-    path_planner = AStarPlanner(world=world,grid_resolution=0.5,grid_inflation_radius=0.1,heuristic="euclidean",diagonal_motion=True,compress_path=True)
+    path_planner = AStarPlanner(world=world,grid_resolution=1.0,grid_inflation_radius=0.1,heuristic="euclidean",diagonal_motion=True,compress_path=True)
     path_planner.latest_path = None
 
     # Add trains to network.

@@ -9,13 +9,10 @@ def generate_launch_description():
             output="screen",
             executable="traffic"
         ),
-        Node(
-            package='pyrobosim_ros',
-            executable='prs_worldinit.py',
-            name='pyrobosim',
-            output='screen',
-            parameters=[{
-                'use_sim_time': True,
-            }]
+        ExecuteProcess(
+            cmd=[
+                "ros2 run pyrobosim_ros prs_worldinit.py"
+            ],
+            shell=True
         )
     ])

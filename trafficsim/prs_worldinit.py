@@ -148,7 +148,8 @@ def create_ros_node():
     rclpy.init()
     node = WorldROSWrapper(state_pub_rate=0.1, dynamics_rate=0.01)
 
-    node.get_logger().info("Creating demo world programmatically.")
+    node.get_logger().info("Creating world programmatically.")
+    
     world = create_world()
 
     node.set_world(world)

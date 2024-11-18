@@ -1,4 +1,4 @@
-## Dependencies
+cd ## Dependencies
 1. This project is build for Ubuntu Linux - Noble Numbat (24.04)
 2. [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html) - Build according to docs
 3. [Pyrobosim](https://pyrobosim.readthedocs.io/en/latest/setup.html#local-setup) - Build according to docs

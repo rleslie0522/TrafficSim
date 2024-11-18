@@ -1,0 +1,28 @@
+[1.158s] Invoking command in '/home/rjleslie/pyrobosim_ws/src/trafficsim': PYTHONPATH=/home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/prefix_override:/home/rjleslie/python-virtualenvs/pyrobosim/lib/python3.12/site-packages/colcon_core/task/python/colcon_distutils_commands:/home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages:${PYTHONPATH} VIRTUAL_ENV_PROMPT=(pyrobosim) /home/rjleslie/python-virtualenvs/pyrobosim/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base build/trafficsim build --build-base /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/build install --record /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/install.log --single-version-externally-managed install_data
+[1.488s] running egg_info
+[1.503s] writing build/trafficsim/trafficsim.egg-info/PKG-INFO
+[1.504s] writing dependency_links to build/trafficsim/trafficsim.egg-info/dependency_links.txt
+[1.505s] writing entry points to build/trafficsim/trafficsim.egg-info/entry_points.txt
+[1.505s] writing requirements to build/trafficsim/trafficsim.egg-info/requires.txt
+[1.505s] writing top-level names to build/trafficsim/trafficsim.egg-info/top_level.txt
+[1.547s] reading manifest file 'build/trafficsim/trafficsim.egg-info/SOURCES.txt'
+[1.548s] adding license file 'LICENSE'
+[1.549s] writing manifest file 'build/trafficsim/trafficsim.egg-info/SOURCES.txt'
+[1.550s] running build
+[1.550s] running build_py
+[1.550s] copying trafficsim/prs_worldinit.py -> /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/build/lib/trafficsim
+[1.551s] copying trafficsim/traffic.py -> /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/build/lib/trafficsim
+[1.553s] copying trafficsim/__init__.py -> /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/build/lib/trafficsim
+[1.554s] running install
+[1.563s] running install_lib
+[1.586s] running install_data
+[1.586s] copying resource/trafficsim -> /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/share/ament_index/resource_index/packages
+[1.587s] copying package.xml -> /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/share/trafficsim
+[1.587s] copying launch/traffic_launch.py -> /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/share/trafficsim/launch
+[1.588s] running install_egg_info
+[1.613s] removing '/home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages/trafficsim-0.0.0-py3.12.egg-info' (and everything under it)
+[1.614s] Copying build/trafficsim/trafficsim.egg-info to /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages/trafficsim-0.0.0-py3.12.egg-info
+[1.615s] running install_scripts
+[1.710s] Installing traffic script to /home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/trafficsim
+[1.710s] writing list of installed files to '/home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/install.log'
+[1.756s] Invoked command in '/home/rjleslie/pyrobosim_ws/src/trafficsim' returned '0': PYTHONPATH=/home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/prefix_override:/home/rjleslie/python-virtualenvs/pyrobosim/lib/python3.12/site-packages/colcon_core/task/python/colcon_distutils_commands:/home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages:${PYTHONPATH} VIRTUAL_ENV_PROMPT=(pyrobosim) /home/rjleslie/python-virtualenvs/pyrobosim/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base build/trafficsim build --build-base /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/build install --record /home/rjleslie/pyrobosim_ws/src/trafficsim/build/trafficsim/install.log --single-version-externally-managed install_data

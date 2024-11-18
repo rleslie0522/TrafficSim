@@ -15,7 +15,7 @@ def generate_launch_description():
             name='pyrobosim',
             output='screen',
             parameters=[{
-                'use_sim_time': True
+                'use_sim_time': True,
             }]
         )
     ])

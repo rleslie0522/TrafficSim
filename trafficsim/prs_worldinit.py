@@ -64,11 +64,11 @@ lines = {
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
 
 
-scaling_factor = 1000
+scaling_factor = 0.001
 
 
 station_coordinates = {
-    name: (x / scaling_factor, y / scaling_factor)
+    name: (x * scaling_factor, y * scaling_factor)
     for name, (longitude, latitude) in stations.items()
     for x, y in [transformer.transform(longitude, latitude)]
 }

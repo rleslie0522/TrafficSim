@@ -15,12 +15,9 @@ Cloning this folder will create a folder named `CS4048_GroupProject` on your sys
 
 ## Build Instructions
 
-1. Ensure you are in your ROS 2 Workspace - e.g. `cd ~/ros2_ws`
-2. Type `cp ~/ros2_ws/src/trafficsim/trafficsim/prs_worldinit.py ~/ros2_ws/install/pyrobosim_ros/lib/pyrobosim_ros` (**:warning: WARNING :warning:** - you may need to alter the destination path based on the location of your Pyrobosim installation directory)
-3. Type `chmod +x ~/ros2_ws/install/pyrobosim_ros/lib/pyrobosim_ros/prs_worldinit.py`
-4. Type `colcon build --packages-select pyrobosim pyrobosim_ros trafficsim`
-5. Type `source install/local_setup.bash`
-6. Type `ros2 launch trafficsim traffic_launch.py`
+```sh
+bash build_and_launch.bash
+```
 
 ## Resolving Pyrobosim Errors
 
@@ -33,4 +30,6 @@ Cloning this folder will create a folder named `CS4048_GroupProject` on your sys
 
 ### No module named 'py-xxxx'
 
-1. Type `pip install 'py-xxxx'`, where 'py-xxxx' is the module not found (e.g., `pip install pyproj`)
+```sh
+pip install -r requirements.txt
+```

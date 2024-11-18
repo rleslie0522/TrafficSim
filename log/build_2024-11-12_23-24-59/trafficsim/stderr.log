@@ -1,5 +1,0 @@
-  File "/home/rjleslie/pyrobosim_ws/src/trafficsim/install/trafficsim/lib/python3.12/site-packages/trafficsim/prs_worldinit.py", line 32
-    "DEE_DUNDEE": (-2.9780, 56.4566)
-    ^^^^^^^^^^^^
-SyntaxError: invalid syntax
-

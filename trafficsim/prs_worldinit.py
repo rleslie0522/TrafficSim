@@ -12,7 +12,9 @@
 
 
 import os
+import rclpy
 import numpy as np
+import threading
 
 
 from pyproj import Transformer
@@ -30,6 +32,9 @@ from pyrobosim.navigation import (
 from pyrobosim.utils.general import get_data_folder
 from pyrobosim.utils.pose import Pose
 
+from pyrobosim_ros.ros_interface import WorldROSWrapper
+
+
 
 data_folder = get_data_folder()
 
@@ -39,10 +44,22 @@ stations = {
     "DEE_DUNDEE": (-2.9693476729306725, 56.45798804872731),
     "EDB_EDINBURGH": (-3.18827538288093, 55.9529422357554),
     "GLQ_GLASGOW": (-4.25027196270787, 55.864434017276785),
+    "PTH_PERTH": (-3.438421688544935, 56.391456953806795),
     "INV_INVERNESS": (-4.223450794177058, 57.47990597863926),
     "FTW_FORTWILLIAM": (-5.106064629824768, 56.820585503958405)
 }
 
+lines = {
+    "ECML_DEE_ABD": ("DEE_DUNDEE", "ABD_ABERDEEN"),
+    "ECML_EDB_DEE": ("EDB_EDINBURGH", "DEE_DUNDEE"),
+    "FIFE_EDB_PTH": ("EDB_EDINBURGH", "PTH_PERTH"),
+    "EDIGLA_EDB_GLQ": ("EDB_EDINBURGH", "GLQ_GLASGOW"),
+    "HIGHLAND_PTH_INV": ("PTH_PERTH", "INV_INVERNESS"),
+    "DEE_PTH_LINE": ("DEE_DUNDEE", "PTH_PERTH"),
+    "SCOTCENTRAL_GLQ_PTH": ("GLQ_GLASGOW", "PTH_PERTH"),
+    "ABD_INV_LINE": ("ABD_ABERDEEN", "INV_INVERNESS"),
+    "WESTHIGHLAND_GLQ_FTW": ("GLQ_GLASGOW", "FTW_FORTWILLIAM")
+}
 
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
 
@@ -62,11 +79,17 @@ def create_world():
         Creates a world.
     """
 
-
+    # Initialise world environment.
     world = World()
 
+    # Set the location and object metadata
+    world.set_metadata(
+        locations=os.path.join(data_folder, "example_location_data.yaml"),
+        objects=os.path.join(data_folder, "example_object_data.yaml"),
+    )
 
-    room_size = 10 #room size in meters
+    # Iterate through stations given above and add to pyrobosim environment.
+    room_size = 10
     for name, (x, y) in station_coordinates.items():
         footprint = [
             (x - room_size / 2, y - room_size / 2), #bottom left
@@ -75,37 +98,70 @@ def create_world():
             (x + room_size / 2, y - room_size / 2)  #bottom right
         ]
         world.add_room(name=name, footprint=footprint, color=[0, 0, 0])
-   
-    world.add_hallway(room_start="ABD_ABERDEEN", room_end="DEE_DUNDEE", width=2)
-    world.add_hallway(room_start="ABD_ABERDEEN", room_end="INV_INVERNESS", width=2)
-    world.add_hallway(room_start="DEE_DUNDEE", room_end="EDB_EDINBURGH", width=2)
-    world.add_hallway(room_start="DEE_DUNDEE", room_end="GLQ_GLASGOW", width=2)
-    world.add_hallway(room_start="DEE_DUNDEE", room_end="INV_INVERNESS", width=2)
-    world.add_hallway(room_start="EDB_EDINBURGH", room_end="GLQ_GLASGOW", width=2)
-    world.add_hallway(room_start="EDB_EDINBURGH", room_end="INV_INVERNESS", width=2)
-    world.add_hallway(room_start="GLQ_GLASGOW", room_end="FTW_FORTWILLIAM", width=2)
 
+    # Add rail lines connecting stations.
+    for name, (start, end) in lines.items():
+        world.add_hallway(room_start=start, room_end=end, name=name, width=2)
+    
+    # RRT Path Planner - from demo.py
+    planner_config = {
+        "world": world,
+        "bidirectional": True,
+        "rrt_connect": False,
+        "rrt_star": True,
+        "collision_check_step_dist": 0.025,
+        "max_connection_dist": 25.0,
+        "rewire_radius": 1.5,
+        "compress_path": False,
+    }
+    path_planner = RRTPlanner(**planner_config)
 
-    #r1coords = [(100, 100), (100, 0), (0,0)]
-    #world.add_room(name="EDB_EDINBURGH", footprint=r1coords, color=[0, 0, 0])
-
-
-    #robot = Robot(
-    #    name="1F37_ABD-EDB",
-    #    radius=2,
-    #    path_executor=ConstantVelocityExecutor(),
-    #)
-
-
-    #world.add_robot(robot, loc="EDB_EDINBURGH")
+    # Add trains to network.
+    robot = Robot(
+        name="Scotrail_170401",
+        radius=0.5,
+        path_executor=ConstantVelocityExecutor(),
+        path_planner=path_planner,
+    )
+    world.add_robot(robot, loc="ABD_ABERDEEN")
+    robot = Robot(
+        name="Scotrail_158701",
+        radius=0.5,
+        path_executor=ConstantVelocityExecutor(),
+        path_planner=path_planner,
+    )
+    world.add_robot(robot, loc="EDB_EDINBURGH")
+    robot = Robot(
+        name="Scotrail_385xxx",
+        radius=0.5,
+        path_executor=ConstantVelocityExecutor(),
+        path_planner=path_planner,
+    )
+    world.add_robot(robot, loc="GLQ_GLASGOW")
 
 
     return world
 
 
-if __name__ == "__main__":
+def create_ros_node():
+    """Initializes ROS node"""
+    rclpy.init()
+    node = WorldROSWrapper(state_pub_rate=0.1, dynamics_rate=0.01)
+
+    node.get_logger().info("Creating demo world programmatically.")
     world = create_world()
-    start_gui(world)
-   
+
+    node.set_world(world)
+
+    return node
 
 
+if __name__ == "__main__":
+    node = create_ros_node()
+
+    # Start ROS node in separate thread
+    ros_thread = threading.Thread(target=lambda: node.start(wait_for_gui=True))
+    ros_thread.start()
+
+    # Start GUI in main thread
+    start_gui(node.world)

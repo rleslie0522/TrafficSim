@@ -19,7 +19,7 @@ import threading
 
 from pyproj import Transformer
 
-from pyrobosim.core import Robot, World, WorldYamlLoader, Room, Location, Object
+from pyrobosim.core import Robot, World
 from pyrobosim.gui import start_gui
 from pyrobosim.gui import PyRoboSimGUI
 from pyrobosim.navigation import (
@@ -30,6 +30,11 @@ from pyrobosim.utils.general import get_data_folder
 from pyrobosim.utils.pose import Pose
 from pyrobosim_ros.ros_interface import WorldROSWrapper
 
+# ============================================
+#
+# IMPORT INTERFACES
+#
+# ============================================
 from std_msgs.msg import String
 from trafficsim_interfaces.srv import TestSrvInterface
 
@@ -40,6 +45,7 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
         which will allow `trafficsim` to have finer control over the Pyrobosim
         instance.
     """
+
     def __init__(self):
         super().__init__(
             state_pub_rate=0.1,
@@ -69,48 +75,8 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
     def service_callback(self, request, response):
         response.outputstr = f"I received: {request.inputstr}"
         self.get_logger().info(f"Request input: {request.inputstr}")
+
         return response
-
-# class WorldROSWrapperWithSpawn(WorldROSWrapper):
-#     def __init__(self, state_pub_rate=0.1, dynamics_rate=0.01):
-#         super().__init__(state_pub_rate=state_pub_rate, dynamics_rate=dynamics_rate)
-#         self.srv = self.create_service(
-#             SpawnRobot, 'spawn_robot', self.handle_spawn_robot, callback_group=ReentrantCallbackGroup()
-#         )
-
-#     def handle_spawn_robot(self, request, response):
-#         """Service callback to spawn a robot."""
-#         try:
-#             # Validate request
-#             if request.station_name not in self.world.rooms:
-#                 response.success = False
-#                 response.message = f"Station '{request.station_name}' does not exist in the world."
-#                 self.get_logger().error(response.message)
-#                 return response
-
-#             # # Create a new robot
-#             # robot = Robot(
-#             #     name=request.robot_name,
-#             #     radius=0.5,
-#             #     robot_type=request.robot_type,
-#             #     path_executor=ConstantVelocityExecutor(linear_velocity=5.0),
-#             #     path_planner=self.world.path_planner,  # Use the world's planner
-#             # )
-#             # pose = Pose(x=1.0, y=1.0, z=1.0, yaw=1.0)
-
-#             # # Add robot to the specified station
-#             # self.world.add_robot(robot, loc=request.station_name, pose=pose)
-
-#             response.success = True
-#             response.message = f"Robot '{request.robot_name}' spawned successfully at {request.station_name}."
-#             self.get_logger().info(response.message)
-#         except Exception as e:
-#             response.success = False
-#             response.message = f"Failed to spawn robot: {str(e)}"
-#             self.get_logger().error(response.message)
-#         return response
-
-
 
 # ============================================
 #
@@ -187,6 +153,19 @@ def create_world():
         ]
         world.add_room(name=name, footprint=footprint, color=[0, 0, 0])
 
+    # Iterate through depots and add to pyrobosim environment.
+    for name, (x, y) in depot_coordinates.items():
+        world.add_room(
+            name=name,
+            footprint=[
+                (x - room_size / 2, y - room_size / 2), #bottom left
+                (x - room_size / 2, y + room_size / 2), #top left
+                (x + room_size / 2, y + room_size / 2), #top right
+                (x + room_size / 2, y - room_size / 2)  #bottom right
+            ],
+            color=[0,0,0.2]
+        )
+
     # Add rail lines connecting stations.
     for name, (start, end) in lines.items():
         world.add_hallway(room_start=start, room_end=end, name=name, width=2, color=[0.2, 0.2, 0.2])
@@ -232,8 +211,8 @@ def create_world():
 def create_ros_node():
     """Initializes ROS node"""
     rclpy.init()
+
     node = ExtendedWorldROSWrapper()
-    # node = WorldROSWrapper(state_pub_rate=0.1, dynamics_rate=0.01)
 
     node.get_logger().info("Creating world programmatically.")
 

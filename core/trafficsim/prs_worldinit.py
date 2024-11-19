@@ -17,6 +17,8 @@ import rclpy
 import numpy as np
 import threading
 
+from rclpy.action import ActionServer
+
 from pyproj import Transformer
 
 from pyrobosim.core import Robot, World
@@ -36,7 +38,9 @@ from pyrobosim_ros.ros_interface import WorldROSWrapper
 #
 # ============================================
 from std_msgs.msg import String
+from pyrobosim_msgs.srv import RequestWorldState
 from trafficsim_interfaces.srv import TestSrvInterface
+from trafficsim_interfaces.action import ExecuteTrainRoute
 
 
 class ExtendedWorldROSWrapper(WorldROSWrapper):
@@ -46,7 +50,7 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
         instance.
     """
 
-    def __init__(self):
+    def __init__(self, world):
         super().__init__(
             state_pub_rate=0.1,
             dynamics_rate=0.01
@@ -67,7 +71,23 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             self.service_callback
         )
 
-    # Publish a string to /test_topic using msg type std_msgs/msg/String with yaml value "{data: 'Hello World'}"
+        # Create Action Server to handle train routing.
+        self.train_routing_action = ActionServer(
+            self,
+            ExecuteTrainRoute,
+            'execute_train_route',
+            self.train_routing_callback
+        )
+
+        # Create Service to get world state
+        self.world_state_service = self.create_client(
+            RequestWorldState,
+            'request_world_state'
+        )
+
+        self.set_world(world)
+
+    # Output a string published to /test_topic using msg type std_msgs/msg/String with yaml value "{data: 'Hello World'}"
     def msg_callback(self, msg):
         self.get_logger().info(f"Hello World - msg was: {msg.data}")
 
@@ -75,8 +95,35 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
     def service_callback(self, request, response):
         response.outputstr = f"I received: {request.inputstr}"
         self.get_logger().info(f"Request input: {request.inputstr}")
-
         return response
+
+    # Action Server for train routing.
+    async def train_routing_callback(self, goal_handle):
+        # Use the /request_world_state service to get information about current robots.
+        if not self.world_state_service.wait_for_service(timeout_sec=5.0):
+            self.get_logger().error('Service not available, aborting goal.')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
+        world_state_request = RequestWorldState.Request()
+        world_state_request.robot = goal_handle.request.train_id
+        future = self.world_state_service.call_async(world_state_request)
+        response = await future
+
+        # Use response from /request_world_state to check if robot name passed in as parameter is valid.
+        # If not, then abort this action.
+        if goal_handle.request.train_id not in [robot.name for robot in response.state.robots]:
+            self.get_logger().error('Train ID not in Pyrobosim environment, aborting routing attempt.')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
+
+        # Train name is correct, we now attempt to create the train route specified by the user.
+        self.get_logger().info(f'Routing Train ID: {goal_handle.request.train_id} to destination: {goal_handle.request.destination}...')
+        self.get_logger().info(f'This train will call at: {', '.join(goal_handle.request.stops)}')
+
+        goal_handle.succeed()
+
+        result = ExecuteTrainRoute.Result(success=True)
+        return result
 
 # ============================================
 #
@@ -153,18 +200,6 @@ def create_world():
         ]
         world.add_room(name=name, footprint=footprint, color=[0, 0, 0])
 
-    # Iterate through depots and add to pyrobosim environment.
-    for name, (x, y) in depot_coordinates.items():
-        world.add_room(
-            name=name,
-            footprint=[
-                (x - room_size / 2, y - room_size / 2), #bottom left
-                (x - room_size / 2, y + room_size / 2), #top left
-                (x + room_size / 2, y + room_size / 2), #top right
-                (x + room_size / 2, y - room_size / 2)  #bottom right
-            ],
-            color=[0,0,0.2]
-        )
 
     # Add rail lines connecting stations.
     for name, (start, end) in lines.items():
@@ -187,23 +222,10 @@ def create_world():
         radius=0.5,
         path_executor=ConstantVelocityExecutor(linear_velocity=5.0),
         path_planner=path_planner,
-    )
-    world.add_robot(robot, loc="ABD_ABERDEEN")
-    robot = Robot(
-        name="Scotrail_158701",
-        radius=0.5,
-        path_executor=ConstantVelocityExecutor(linear_velocity=5.0),
-        path_planner=path_planner,
+        color='#1e467d',
+        pose=Pose(0, 0, 0, 0, 0, 0)
     )
     world.add_robot(robot, loc="EDB_EDINBURGH")
-    robot = Robot(
-        name="Scotrail_385xxx",
-        radius=0.5,
-        path_executor=ConstantVelocityExecutor(linear_velocity=5.0),
-        path_planner=path_planner,
-    )
-    world.add_robot(robot, loc="GLQ_GLASGOW")
-
 
     return world
 
@@ -212,13 +234,13 @@ def create_ros_node():
     """Initializes ROS node"""
     rclpy.init()
 
-    node = ExtendedWorldROSWrapper()
-
-    node.get_logger().info("Creating world programmatically.")
-
     world = create_world()
 
-    node.set_world(world)
+    node = ExtendedWorldROSWrapper(world)
+
+    node.get_logger().info("World loaded.")
+
+    # node.set_world(world)
 
     return node
 

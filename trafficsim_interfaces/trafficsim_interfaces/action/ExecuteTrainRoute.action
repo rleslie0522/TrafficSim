@@ -1,0 +1,10 @@
+# Request
+string train_id
+string destination
+string[] stops
+---
+# Result
+bool arrived
+---
+# Feedback
+string[] visited

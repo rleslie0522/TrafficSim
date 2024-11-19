@@ -116,6 +116,13 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
 
+        # Use response from /request_world_state to check if all stations passed in as parameters exist
+        # within the environment. If not, then abort.
+        if goal_handle.request.stops not in set([hallway.room_start for hallway in response.state.hallways]):
+            self.get_logger().error('One or more Station IDs in "stops" parameter not in Pyrobosim environment, aborting routing attempt.')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
+
         # Train name is correct, we now attempt to create the train route specified by the user.
         self.get_logger().info(f'Routing Train ID: {goal_handle.request.train_id} to destination: {goal_handle.request.destination}...')
         self.get_logger().info(f'This train will call at: {', '.join(goal_handle.request.stops)}')

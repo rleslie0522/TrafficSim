@@ -33,3 +33,8 @@ bash build_and_launch.bash
 ```sh
 pip install -r requirements.txt
 ```
+
+## Package Contents
+There are two folders within this repository - each contain a separate package:
+1. `core` contains the `trafficsim` package.
+2. `trafficsim_interfaces` contains the custom interfaces used to communicate with TrafficSim package.

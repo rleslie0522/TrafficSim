@@ -88,6 +88,10 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             'request_world_state'
         )
 
+        # Create Action clients to handle planning and moving robots
+        self.planning_client = None
+        self.follow_client = None
+
         self.set_world(world)
 
     # Output a string published to /test_topic using msg type std_msgs/msg/String with yaml value "{data: 'Hello World'}"
@@ -138,31 +142,73 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
 
         # TODO: Call robot-specific action server to plan and route train.
 
-        planning_client = ActionClient(
+        self.planning_client = ActionClient(
             self,
             PlanPath,
-            f'/{goal_handle.request.train_id}/plan_path'
+            f"{goal_handle.request.train_id}/plan_path"
+        )
+        self.follow_client = ActionClient(
+            self,
+            FollowPath,
+            f"{goal_handle.request.train_id}/follow_path"
         )
 
-        if not planning_client.wait_for_server(timeout_sec=5.0):
-            self.get_logger().error('Action not available, aborting goal.')
+        if not self.planning_client.wait_for_server(timeout_sec=5.0):
+            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot initialise planning client - server unavailable. Aborting...')
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
 
         planning_goal = PlanPath.Goal()
         planning_goal.target_location = "ABD_ABERDEEN"
 
-        planning_future = planning_client.send_goal_async(planning_goal)
-        planning_result = await planning_future
+        planning_goal_handle = await self.planning_client.send_goal_async(planning_goal)
 
-        self.get_logger().info(str(planning_result))
+        if not planning_goal_handle.accepted:
+            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - goal rejected by server. Aborting...')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
 
-        # TODO: Proof-of-Concept for Action Feedback - Implement this each time the train stops at a designated stop in the list!
-        fb = ExecuteTrainRoute.Feedback()
-        for i in range(0,5):
-            fb.visited.append('stop' + str(i))
-            goal_handle.publish_feedback(fb)        # Publishes to a topic /execute_train_route/_action/feedback
-            time.sleep(1)
+        self.get_logger().info(f'{goal_handle.request.train_id} - PlanPath goal accepted. Waiting for result...')
+        planning_result_future = planning_goal_handle.get_result_async()
+        planning_result = await planning_result_future
+
+        self.get_logger().info(str(planning_result.result.path))
+
+        if not planning_result.result.execution_result.status == 0:
+            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(planning_result.result.execution_result.status)} returned by server. Aborting...')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
+
+        self.get_logger().info(f'{goal_handle.request.train_id} - Route planned successfully.')
+
+        follow_goal = FollowPath.Goal()
+        follow_goal.path = planning_result.result.path
+
+        follow_goal_handle = await self.follow_client.send_goal_async(follow_goal)
+
+        if not follow_goal_handle.accepted:
+            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot follow train path - goal rejected by server. Aborting...')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
+
+        self.get_logger().info(f'{goal_handle.request.train_id} FollowPath goal accepted. Waiting for result...')
+        follow_result_future = follow_goal_handle.get_result_async()
+        follow_result = await follow_result_future
+
+        if not follow_result.result.execution_result.status == 0:
+            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(follow_result.result.execution_result.status)} returned by server. Aborting...')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
+
+        self.get_logger().info(f'{goal_handle.request.train_id} - Route traversed successfully.')
+
+
+        # # TODO: Proof-of-Concept for Action Feedback - Implement this each time the train stops at a designated stop in the list!
+        # fb = ExecuteTrainRoute.Feedback()
+        # for i in range(0,5):
+        #     fb.visited.append('stop' + str(i))
+        #     goal_handle.publish_feedback(fb)        # Publishes to a topic /execute_train_route/_action/feedback
+        #     time.sleep(1)
 
         goal_handle.succeed()
 

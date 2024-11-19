@@ -17,7 +17,9 @@ import rclpy
 import numpy as np
 import threading
 
-from rclpy.action import ActionServer
+import time
+
+from rclpy.action import ActionServer, ActionClient
 
 from pyproj import Transformer
 
@@ -34,11 +36,12 @@ from pyrobosim_ros.ros_interface import WorldROSWrapper
 
 # ============================================
 #
-# IMPORT INTERFACES
+# IMPORT MESSAGE, SERVER, AND ACTION INTERFACES
 #
 # ============================================
 from std_msgs.msg import String
 from pyrobosim_msgs.srv import RequestWorldState
+from pyrobosim_msgs.action import FollowPath, PlanPath
 from trafficsim_interfaces.srv import TestSrvInterface
 from trafficsim_interfaces.action import ExecuteTrainRoute
 
@@ -97,7 +100,8 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
         self.get_logger().info(f"Request input: {request.inputstr}")
         return response
 
-    # Action Server for train routing.
+    # Action Server for train routing. REF: https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-an-Action-Server-Client/Py.html
+    # Ref 2 - https://www.velotio.com/engineering-blog/async-features-in-python - needed to call other async functions (services)
     async def train_routing_callback(self, goal_handle):
         # Use the /request_world_state service to get information about current robots.
         if not self.world_state_service.wait_for_service(timeout_sec=5.0):
@@ -118,14 +122,47 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
 
         # Use response from /request_world_state to check if all stations passed in as parameters exist
         # within the environment. If not, then abort.
-        if goal_handle.request.stops not in set([hallway.room_start for hallway in response.state.hallways]):
+        nonexistent_stations = set(goal_handle.request.stops).difference(
+            set([hallway.room_start for hallway in response.state.hallways] +
+                [hallway.room_end for hallway in response.state.hallways]
+            )
+        )
+        if len(nonexistent_stations) > 0:
             self.get_logger().error('One or more Station IDs in "stops" parameter not in Pyrobosim environment, aborting routing attempt.')
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
 
-        # Train name is correct, we now attempt to create the train route specified by the user.
+        # Train name is correct, we now attempt to create the train route specified in the parameters.
         self.get_logger().info(f'Routing Train ID: {goal_handle.request.train_id} to destination: {goal_handle.request.destination}...')
-        self.get_logger().info(f'This train will call at: {', '.join(goal_handle.request.stops)}')
+        self.get_logger().info(f'This train will call at: {', '.join(goal_handle.request.stops[:-1])}, and {goal_handle.request.stops[-1]}')
+
+        # TODO: Call robot-specific action server to plan and route train.
+
+        planning_client = ActionClient(
+            self,
+            PlanPath,
+            f'/{goal_handle.request.train_id}/plan_path'
+        )
+
+        if not planning_client.wait_for_server(timeout_sec=5.0):
+            self.get_logger().error('Action not available, aborting goal.')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
+
+        planning_goal = PlanPath.Goal()
+        planning_goal.target_location = "ABD_ABERDEEN"
+
+        planning_future = planning_client.send_goal_async(planning_goal)
+        planning_result = await planning_future
+
+        self.get_logger().info(str(planning_result))
+
+        # TODO: Proof-of-Concept for Action Feedback - Implement this each time the train stops at a designated stop in the list!
+        fb = ExecuteTrainRoute.Feedback()
+        for i in range(0,5):
+            fb.visited.append('stop' + str(i))
+            goal_handle.publish_feedback(fb)        # Publishes to a topic /execute_train_route/_action/feedback
+            time.sleep(1)
 
         goal_handle.succeed()
 

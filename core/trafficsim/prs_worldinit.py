@@ -18,6 +18,7 @@ import numpy as np
 import threading
 
 import time
+import json
 
 from rclpy.action import ActionServer, ActionClient
 
@@ -124,6 +125,10 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
 
+        # Get current robot state
+        current_robot_state = [robot for robot in response.state.robots if robot.name == goal_handle.request.train_id][0]
+        self.get_logger().info(f'TRAIN INFORMATION: {current_robot_state}')
+
         # Use response from /request_world_state to check if all stations passed in as parameters exist
         # within the environment. If not, then abort.
         nonexistent_stations = set(goal_handle.request.stops).difference(
@@ -140,8 +145,7 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
         self.get_logger().info(f'Routing Train ID: {goal_handle.request.train_id} to destination: {goal_handle.request.destination}...')
         self.get_logger().info(f'This train will call at: {', '.join(goal_handle.request.stops[:-1])}, and {goal_handle.request.stops[-1]}')
 
-        # TODO: Call robot-specific action server to plan and route train.
-
+        # Create two Action Clients - one to communicate with Pyrobosim's Path Planner, the other for Pyrobosim Follow Path action.
         self.planning_client = ActionClient(
             self,
             PlanPath,
@@ -158,49 +162,59 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
 
-        planning_goal = PlanPath.Goal()
-        planning_goal.target_location = "ABD_ABERDEEN"
+        for i in range(0, len(goal_handle.request.stops) + 1):
+            planning_goal = PlanPath.Goal()
+            planning_goal.target_location = goal_handle.request.stops[i] if i < len(goal_handle.request.stops) else goal_handle.request.destination
 
-        planning_goal_handle = await self.planning_client.send_goal_async(planning_goal)
+            planning_goal_handle = await self.planning_client.send_goal_async(planning_goal)
 
-        if not planning_goal_handle.accepted:
-            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - goal rejected by server. Aborting...')
-            goal_handle.abort()
-            return ExecuteTrainRoute.Result(success=False)
+            if not planning_goal_handle.accepted:
+                self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - goal rejected by server. Aborting...')
+                goal_handle.abort()
+                return ExecuteTrainRoute.Result(success=False)
 
-        self.get_logger().info(f'{goal_handle.request.train_id} - PlanPath goal accepted. Waiting for result...')
-        planning_result_future = planning_goal_handle.get_result_async()
-        planning_result = await planning_result_future
+            self.get_logger().info(f'{goal_handle.request.train_id} - PlanPath goal accepted. Waiting for result...')
+            planning_result_future = planning_goal_handle.get_result_async()
+            planning_result = await planning_result_future
 
-        self.get_logger().info(str(planning_result.result.path))
+            self.get_logger().info(str(planning_result.result.path))
 
-        if not planning_result.result.execution_result.status == 0:
-            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(planning_result.result.execution_result.status)} returned by server. Aborting...')
-            goal_handle.abort()
-            return ExecuteTrainRoute.Result(success=False)
+            if not planning_result.result.execution_result.status == 0:
+                self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(planning_result.result.execution_result.status)} returned by server. Aborting...')
+                goal_handle.abort()
+                return ExecuteTrainRoute.Result(success=False)
 
-        self.get_logger().info(f'{goal_handle.request.train_id} - Route planned successfully.')
+            self.get_logger().info(f'{goal_handle.request.train_id} - Route planned successfully.')
 
-        follow_goal = FollowPath.Goal()
-        follow_goal.path = planning_result.result.path
+            follow_goal = FollowPath.Goal()
+            follow_goal.path = planning_result.result.path
 
-        follow_goal_handle = await self.follow_client.send_goal_async(follow_goal)
+            follow_goal_handle = await self.follow_client.send_goal_async(follow_goal)
 
-        if not follow_goal_handle.accepted:
-            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot follow train path - goal rejected by server. Aborting...')
-            goal_handle.abort()
-            return ExecuteTrainRoute.Result(success=False)
+            if not follow_goal_handle.accepted:
+                self.get_logger().error(f'{goal_handle.request.train_id} - Cannot follow train path - goal rejected by server. Aborting...')
+                goal_handle.abort()
+                return ExecuteTrainRoute.Result(success=False)
 
-        self.get_logger().info(f'{goal_handle.request.train_id} FollowPath goal accepted. Waiting for result...')
-        follow_result_future = follow_goal_handle.get_result_async()
-        follow_result = await follow_result_future
+            self.get_logger().info(f'{goal_handle.request.train_id} FollowPath goal accepted. Waiting for result...')
+            follow_result_future = follow_goal_handle.get_result_async()
+            follow_result = await follow_result_future
 
-        if not follow_result.result.execution_result.status == 0:
-            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(follow_result.result.execution_result.status)} returned by server. Aborting...')
-            goal_handle.abort()
-            return ExecuteTrainRoute.Result(success=False)
+            if not follow_result.result.execution_result.status == 0:
+                self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(follow_result.result.execution_result.status)} returned by server. Aborting...')
+                goal_handle.abort()
+                return ExecuteTrainRoute.Result(success=False)
 
-        self.get_logger().info(f'{goal_handle.request.train_id} - Route traversed successfully.')
+            self.get_logger().info(f'{goal_handle.request.train_id} - Route traversed successfully.')
+
+            if i < len(goal_handle.request.stops):
+                self.get_logger().info(f'{goal_handle.request.train_id} - This is {goal_handle.request.stops[i]}. This train is for {goal_handle.request.destination}. The next stop is {goal_handle.request.stops[i+1] if i < len(goal_handle.request.stops) else goal_handle.request.destination}.')
+                self.get_logger().info(f'This train will remain for 10 seconds until next stop.')
+                # Simulate embarking and disembarking.
+                time.sleep(10)
+            else:
+                self.get_logger().info(f'{goal_handle.request.train_id} - This is {goal_handle.request.destination}, where this train will terminate.')
+                self.get_logger().info(f'Train has reached final destination - path complete.')
 
 
         # # TODO: Proof-of-Concept for Action Feedback - Implement this each time the train stops at a designated stop in the list!
@@ -222,35 +236,21 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
 # ============================================
 data_folder = get_data_folder()
 
-stations = {
-    "ABD_ABERDEEN": (-2.099077142995629, 57.143727934509165),
-    "DEE_DUNDEE": (-2.9693476729306725, 56.45798804872731),
-    "EDB_EDINBURGH": (-3.18827538288093, 55.9529422357554),
-    "GLQ_GLASGOW": (-4.25027196270787, 55.864434017276785),
-    "PTH_PERTH": (-3.438421688544935, 56.391456953806795),
-    "INV_INVERNESS": (-4.223450794177058, 57.47990597863926),
-    "FTW_FORTWILLIAM": (-5.106064629824768, 56.820585503958405)
-}
+# Retrieve stations from generated coords in station_dataset folder
+with open(f'/home/{os.getlogin()}/ros2_ws/src/trafficsim/station_dataset/RailStationCoords.json', 'r') as f:
+    stations = json.load(f)
+
+# Retrieve rail lines from generated lines in station_dataset folder
+with open(f'/home/{os.getlogin()}/ros2_ws/src/trafficsim/station_dataset/RailLines.json', 'r') as f:
+    lines = json.load(f)
 
 depots = {
-    "DEPOT_HAYMARKET": (-3.235502, 55.942165)
-}
-
-lines = {
-    "ECML_DEE_ABD": ("DEE_DUNDEE", "ABD_ABERDEEN"),
-    "ECML_EDB_DEE": ("EDB_EDINBURGH", "DEE_DUNDEE"),
-    "FIFE_EDB_PTH": ("EDB_EDINBURGH", "PTH_PERTH"),
-    "EDIGLA_EDB_GLQ": ("EDB_EDINBURGH", "GLQ_GLASGOW"),
-    "HIGHLAND_PTH_INV": ("PTH_PERTH", "INV_INVERNESS"),
-    "DEE_PTH_LINE": ("DEE_DUNDEE", "PTH_PERTH"),
-    "SCOTCENTRAL_GLQ_PTH": ("GLQ_GLASGOW", "PTH_PERTH"),
-    "ABD_INV_LINE": ("ABD_ABERDEEN", "INV_INVERNESS"),
-    "WESTHIGHLAND_GLQ_FTW": ("GLQ_GLASGOW", "FTW_FORTWILLIAM")
+    # "DEPOT_HAYMARKET": (-3.235502, 55.942165)
 }
 
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
 
-scaling_factor = 0.001
+scaling_factor = 0.004
 
 station_coordinates = {
     name: (x * scaling_factor, y * scaling_factor)
@@ -280,8 +280,19 @@ def create_world():
     )
 
     # Iterate through stations given above and add to pyrobosim environment.
-    room_size = 10
+    room_size = 5
     for name, (x, y) in station_coordinates.items():
+        footprint = [
+            (x - room_size / 2, y - room_size / 2), #bottom left
+            (x - room_size / 2, y + room_size / 2), #top left
+            (x + room_size / 2, y + room_size / 2), #top right
+            (x + room_size / 2, y - room_size / 2)  #bottom right
+        ]
+        world.add_room(name=name, footprint=footprint, color=[0, 0, 0])
+
+    # Add depots to pyrobosim environment.
+    room_size = 2
+    for name, (x,y) in depot_coordinates.items():
         footprint = [
             (x - room_size / 2, y - room_size / 2), #bottom left
             (x - room_size / 2, y + room_size / 2), #top left
@@ -293,7 +304,7 @@ def create_world():
 
     # Add rail lines connecting stations.
     for name, (start, end) in lines.items():
-        world.add_hallway(room_start=start, room_end=end, name=name, width=2, color=[0.2, 0.2, 0.2])
+        world.add_hallway(room_start=start, room_end=end, name=name, width=1.25, color=[0.2, 0.2, 0.2])
 
     # Initialise A* Path Planner
     path_planner = AStarPlanner(
@@ -315,7 +326,7 @@ def create_world():
         color='#1e467d',
         pose=Pose(0, 0, 0, 0, 0, 0)
     )
-    world.add_robot(robot, loc="EDB_EDINBURGH")
+    world.add_robot(robot, loc="Dundee")
 
     return world
 
@@ -329,8 +340,6 @@ def create_ros_node():
     node = ExtendedWorldROSWrapper(world)
 
     node.get_logger().info("World loaded.")
-
-    # node.set_world(world)
 
     return node
 

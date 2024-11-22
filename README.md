@@ -41,4 +41,4 @@ There are two folders within this repository - each contain a separate package:
 
 ## Execution
 ### Demo Path Planner
-1. type `ros2 action send_goal /execute_train_route trafficsim_interfaces/action/ExecuteTrainRoute "{train_id: 'Scotrail_170401', destination: 'Edinburgh_Waverley', stops: ['Leuchars', 'Kirkcaldy', 'Inverkeithing', 'Haymarket']}"
+1. type `ros2 action send_goal /execute_train_route trafficsim_interfaces/action/ExecuteTrainRoute "{train_id: 'Scotrail_170401', destination: 'Edinburgh_Waverley', stops: ['Leuchars', 'Kirkcaldy', 'Inverkeithing', 'Haymarket']}"`

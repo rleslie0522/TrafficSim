@@ -12,6 +12,7 @@
 # IMPORT DEPENDENCIES
 #
 # ============================================
+import getpass
 import os
 import rclpy
 import numpy as np
@@ -177,8 +178,6 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             planning_result_future = planning_goal_handle.get_result_async()
             planning_result = await planning_result_future
 
-            self.get_logger().info(str(planning_result.result.path))
-
             if not planning_result.result.execution_result.status == 0:
                 self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(planning_result.result.execution_result.status)} returned by server. Aborting...')
                 goal_handle.abort()
@@ -208,7 +207,7 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             self.get_logger().info(f'{goal_handle.request.train_id} - Route traversed successfully.')
 
             if i < len(goal_handle.request.stops):
-                self.get_logger().info(f'{goal_handle.request.train_id} - This is {goal_handle.request.stops[i]}. This train is for {goal_handle.request.destination}. The next stop is {goal_handle.request.stops[i+1] if i < len(goal_handle.request.stops) else goal_handle.request.destination}.')
+                self.get_logger().info(f'{goal_handle.request.train_id} - This is {goal_handle.request.stops[i]}. This train is for {goal_handle.request.destination}. The next stop is {goal_handle.request.destination if i == len(goal_handle.request.stops)-1 else goal_handle.request.stops[i+1]}.')
                 self.get_logger().info(f'This train will remain for 10 seconds until next stop.')
                 # Simulate embarking and disembarking.
                 time.sleep(10)
@@ -237,11 +236,11 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
 data_folder = get_data_folder()
 
 # Retrieve stations from generated coords in station_dataset folder
-with open(f'/home/{os.getlogin()}/ros2_ws/src/trafficsim/station_dataset/RailStationCoords.json', 'r') as f:
+with open(f'/home/{getpass.getuser()}/ros2_ws/src/trafficsim/station_dataset/RailStationCoords.json', 'r') as f:
     stations = json.load(f)
 
 # Retrieve rail lines from generated lines in station_dataset folder
-with open(f'/home/{os.getlogin()}/ros2_ws/src/trafficsim/station_dataset/RailLines.json', 'r') as f:
+with open(f'/home/{getpass.getuser()}/ros2_ws/src/trafficsim/station_dataset/RailLines.json', 'r') as f:
     lines = json.load(f)
 
 depots = {

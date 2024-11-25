@@ -1,8 +1,10 @@
 from bs4 import BeautifulSoup
 import json
-import getpass
+import pathlib
 
-soup = BeautifulSoup(open(f'/home/{getpass.getuser()}/ros2_ws/src/trafficsim/station_dataset/Category_Railway_stations_served_by_ScotRail.xml', 'r'), 'xml')
+parent_path = pathlib.Path(__file__).parent.resolve()
+
+soup = BeautifulSoup(open(parent_path.joinpath('Category_Railway_stations_served_by_ScotRail.xml'), 'r'), 'xml')
 
 stations_json = {}
 lines_json = {}
@@ -29,8 +31,8 @@ for line in lines.items():
         if station_connection not in lines_json.values() and station_connection_alt not in lines_json.values():
             lines_json[f'{str(line[0])}_{str(line[1][i]).upper()}_{str(line[1][i+1]).upper()}'] = (str(line[1][i]), str(line[1][i+1]))
 
-with open('station_dataset/RailStationCoords.json', 'w') as f:
+with open(parent_path.joinpath('RailStationCoords.json'), 'w') as f:
     json.dump(stations_json, f)
 
-with open('station_dataset/RailLines.json', 'w') as f:
+with open(parent_path.joinpath('RailLines.json'), 'w') as f:
     json.dump(lines_json, f)

@@ -17,6 +17,7 @@ import os
 import rclpy
 import numpy as np
 import threading
+import pathlib
 
 import time
 import json
@@ -235,12 +236,13 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
 # ============================================
 data_folder = get_data_folder()
 
+station_dataset_path = pathlib.Path(__file__).parent.parent.parent.parent.parent.resolve().joinpath("src/trafficsim/station_dataset")
 # Retrieve stations from generated coords in station_dataset folder
-with open(f'/home/{getpass.getuser()}/ros2_ws/src/trafficsim/station_dataset/RailStationCoords.json', 'r') as f:
+with open(station_dataset_path.joinpath("RailStationCoords.json"), 'r') as f:
     stations = json.load(f)
 
 # Retrieve rail lines from generated lines in station_dataset folder
-with open(f'/home/{getpass.getuser()}/ros2_ws/src/trafficsim/station_dataset/RailLines.json', 'r') as f:
+with open(station_dataset_path.joinpath('RailLines.json'), 'r') as f:
     lines = json.load(f)
 
 depots = {

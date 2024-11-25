@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
 import json
+import getpass
 
-soup = BeautifulSoup(open('/home/calvinearnshaw/ros2_ws/src/trafficsim/station_dataset/Category_Railway_stations_served_by_ScotRail.xml', 'r'), 'xml')
+soup = BeautifulSoup(open(f'/home/{getpass.getuser()}/ros2_ws/src/trafficsim/station_dataset/Category_Railway_stations_served_by_ScotRail.xml', 'r'), 'xml')
 
 stations_json = {}
 lines_json = {}

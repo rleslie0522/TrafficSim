@@ -174,12 +174,12 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
                 goal_handle.abort()
                 return ExecuteTrainRoute.Result(success=False)
 
-            self.get_logger().info(f'{goal_handle.request.train_id} - PlanPath goal accepted. Waiting for result...')
+            self.get_logger().info(f'{goal_handle.request.train_id} - Goal within PlanPath action has been accepted. Waiting for result...')
             planning_result_future = planning_goal_handle.get_result_async()
             planning_result = await planning_result_future
 
             if not planning_result.result.execution_result.status == 0:
-                self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(planning_result.result.execution_result.status)} returned by server. Aborting...')
+                self.get_logger().error(f'{goal_handle.request.train_id} - Cannot complete PlanPath action - error code {str(planning_result.result.execution_result.status)} returned by server. Aborting...')
                 goal_handle.abort()
                 return ExecuteTrainRoute.Result(success=False)
 
@@ -195,25 +195,25 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
                 goal_handle.abort()
                 return ExecuteTrainRoute.Result(success=False)
 
-            self.get_logger().info(f'{goal_handle.request.train_id} FollowPath goal accepted. Waiting for result...')
+            self.get_logger().info(f'{goal_handle.request.train_id} - Goal within FollowPath action has been accepted. Agent moving...')
             follow_result_future = follow_goal_handle.get_result_async()
             follow_result = await follow_result_future
 
             if not follow_result.result.execution_result.status == 0:
-                self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - error code {str(follow_result.result.execution_result.status)} returned by server. Aborting...')
+                self.get_logger().error(f'{goal_handle.request.train_id} - Cannot complete FollowPath action - error code {str(follow_result.result.execution_result.status)} returned by server. Aborting...')
                 goal_handle.abort()
                 return ExecuteTrainRoute.Result(success=False)
 
-            self.get_logger().info(f'{goal_handle.request.train_id} - Route traversed successfully.')
+            self.get_logger().info(f'{goal_handle.request.train_id} - Path segment traversed successfully.')
 
             if i < len(goal_handle.request.stops):
-                self.get_logger().info(f'{goal_handle.request.train_id} - This is {goal_handle.request.stops[i]}. This train is for {goal_handle.request.destination}. The next stop is {goal_handle.request.destination if i == len(goal_handle.request.stops)-1 else goal_handle.request.stops[i+1]}.')
-                self.get_logger().info(f'This train will remain for 10 seconds until next stop.')
+                self.get_logger().info(f'{goal_handle.request.train_id} - Stopped at: {goal_handle.request.stops[i]}. Next stop: {goal_handle.request.destination if i == len(goal_handle.request.stops)-1 else goal_handle.request.stops[i+1]}.')
+                self.get_logger().info(f'{goal_handle.request.train_id} - Remaining at {goal_handle.request.stops[i]} for 10 seconds.')
                 # Simulate embarking and disembarking.
                 time.sleep(10)
             else:
-                self.get_logger().info(f'{goal_handle.request.train_id} - This is {goal_handle.request.destination}, where this train will terminate.')
-                self.get_logger().info(f'Train has reached final destination - path complete.')
+                self.get_logger().info(f'{goal_handle.request.train_id} - Stopped at: {goal_handle.request.destination}, where this train will terminate.')
+                self.get_logger().info(f'{goal_handle.request.train_id} - Train has reached final destination - path complete.')
 
 
         # # TODO: Proof-of-Concept for Action Feedback - Implement this each time the train stops at a designated stop in the list!

@@ -1,3 +1,4 @@
+python3 station_dataset/dataset_to_json.py
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path/../../"
 cp ./src/trafficsim/core/trafficsim/prs_worldinit.py ./install/pyrobosim_ros/lib/pyrobosim_ros

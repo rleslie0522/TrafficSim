@@ -1,3 +1,4 @@
+#!/bin/bash
 python3 station_dataset/dataset_to_json.py
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path/../../"

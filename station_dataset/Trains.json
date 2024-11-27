@@ -1,0 +1,16 @@
+{
+    "trains": [
+        {
+            "class": "170",
+            "id": "401",
+            "operator": "Scotrail",
+            "starting_station": "Aberdeen"
+        },
+        {
+            "class": "801",
+            "id": "100",
+            "operator": "LNER",
+            "starting_station": "Edinburgh_Waverley"
+        }
+    ]
+}

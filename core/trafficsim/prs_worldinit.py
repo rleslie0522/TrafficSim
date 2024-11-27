@@ -47,6 +47,7 @@ from pyrobosim_ros.ros_interface import WorldROSWrapper
 #
 # ========================================================================================
 
+# Link to data folder containing objects in PyRoboSim.
 data_folder = get_data_folder()
 
 # Retrieve stations from generated coords in station_dataset folder
@@ -57,6 +58,10 @@ with open(station_dataset_path.joinpath("RailStationCoords.json"), 'r') as f:
 # Retrieve rail lines from generated lines in station_dataset folder
 with open(station_dataset_path.joinpath('RailLines.json'), 'r') as f:
     lines = json.load(f)
+
+# Retrieve trains from station_dataset folder
+with open(station_dataset_path.joinpath('Trains.json'), 'r') as f:
+    trains = json.load(f)["trains"]
 
 # Create Transformer object to convert lat/lon into x,y coords - https://gis.stackexchange.com/a/78944
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
@@ -70,6 +75,47 @@ station_coordinates = {
     for name, (longitude, latitude) in stations.items()
     for x, y in [transformer.transform(longitude, latitude)]
 }
+
+# Define train types.
+train_types = {
+    "43": {
+        "operator": "Scotrail",
+        "colour": "#1e467d",
+        "battery_usage": 0.01,
+        "linear_velocity": 7.5
+    },
+    "158": {
+        "operator": "Scotrail",
+        "colour": "#1e467d",
+        "battery_usage": 0.02,
+        "linear_velocity": 5.0
+    },
+    "170": {
+        "operator": "Scotrail",
+        "colour": "#1e467d",
+        "battery_usage": 0.01,
+        "linear_velocity": 6.0
+    },
+    "801": {
+        "operator": "LNER",
+        "colour": "#ce0e2d",
+        "battery_usage": 0.005,
+        "linear_velocity": 7.5
+    }
+}
+
+
+# ========================================================================================
+#
+# CLASS DEFINITIONS
+#
+# ========================================================================================
+
+class NavigationOptions:
+    # This class serves one purpose - to pass in a battery_usage value to the Robot constructor
+    # in the exact format PyRoboSim wants it.
+    def __init__(self, battery_usage: float):
+        self.battery_usage = battery_usage
 
 
 # ========================================================================================
@@ -111,35 +157,53 @@ def create_world():
             (x + room_size / 2, y - room_size / 2)  #bottom right
         ]
         world.add_room(name=name, footprint=footprint, color=[0, 0, 0])
-
+    
+    # for name, (x,y) in station_coordinates.items():
+    #     platform = world.add_location(
+    #         category="desk",
+    #         parent=name, 
+    #         pose=Pose(
+    #             x = x,
+    #             y = y,
+    #             yaw = 0.0
+    #         ),
+    #         name=f"{name}_Platform",
+    #         is_charger=True if name in ["Edinburgh_Waverley", "Aberdeen", "Glasgow_Queen_Street", "Inverness", "Dundee"] else False
+    #     )
 
     # Add rail lines connecting stations.
     for name, (start, end) in lines.items():
         world.add_hallway(room_start=start, room_end=end, name=name, width=1.25, color=[0.2, 0.2, 0.2])
 
-    # Initialise A* Path Planner
+    # Initialise A* Path Planner - TODO Kacper to consider creating our own implementation of this algorithm?
     path_planner = AStarPlanner(
         world = world,
-        grid_resolution = 1.0,
+        grid_resolution = 0.5,
         grid_inflation_radius = 0.1,
         heuristic = "euclidean",
         diagonal_motion = True,
         compress_path = True
     )
-
-    # Fix issue with latest_path in A* planner
     path_planner.latest_path = None
 
     # Add trains to network.
-    robot = Robot(
-        name="Scotrail_170401",
-        radius=0.5,
-        path_executor=ConstantVelocityExecutor(linear_velocity=5.0),
-        path_planner=path_planner,
-        color='#1e467d',
-        pose=Pose(0, 0, 0, 0, 0, 0)
-    )
-    world.add_robot(robot, loc="Dundee")
+    for train in trains:
+        robot = Robot(
+            name=f"{train["operator"]}_{train["class"]}{train["id"]}",
+            radius=0.5,
+            path_executor=ConstantVelocityExecutor(
+                linear_velocity=train_types[train["class"]]["linear_velocity"]
+            ),
+            path_planner=path_planner,
+            color=train_types[train["class"]]["colour"],
+            pose=Pose(0, 0, 0, 0, 0, 0),
+            action_execution_options={
+                "navigate": NavigationOptions(
+                    battery_usage=train_types[train["class"]]["battery_usage"]
+                )
+            }
+        )
+        world.add_robot(robot, loc=train["starting_station"])
 
     return world
 

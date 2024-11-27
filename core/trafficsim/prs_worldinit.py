@@ -21,12 +21,10 @@
 import os
 import threading
 import pathlib
-import time
 import json
 
 # Import ROS2 Common Library Classes
 import rclpy
-from rclpy.action import ActionServer, ActionClient
 
 # Import PyProj Transformer - used to perform geometric transformations for station coordinates.
 from pyproj import Transformer
@@ -42,22 +40,17 @@ from pyrobosim.utils.general import get_data_folder
 from pyrobosim.utils.pose import Pose
 from pyrobosim_ros.ros_interface import WorldROSWrapper
 
-# Import Message, Action, Server interfaces.
-from std_msgs.msg import String
-from pyrobosim_msgs.srv import RequestWorldState
-from pyrobosim_msgs.action import FollowPath, PlanPath
-from trafficsim_interfaces.srv import TestSrvInterface
-from trafficsim_interfaces.action import ExecuteTrainRoute
 
-# ============================================
+# ========================================================================================
 #
 # GLOBAL DEFINITIONS
 #
-# ============================================
+# ========================================================================================
+
 data_folder = get_data_folder()
 
-station_dataset_path = pathlib.Path(__file__).parent.parent.parent.parent.parent.resolve().joinpath("src/trafficsim/station_dataset")
 # Retrieve stations from generated coords in station_dataset folder
+station_dataset_path = pathlib.Path(__file__).parent.parent.parent.parent.parent.resolve().joinpath("src/trafficsim/station_dataset")
 with open(station_dataset_path.joinpath("RailStationCoords.json"), 'r') as f:
     stations = json.load(f)
 
@@ -65,21 +58,40 @@ with open(station_dataset_path.joinpath("RailStationCoords.json"), 'r') as f:
 with open(station_dataset_path.joinpath('RailLines.json'), 'r') as f:
     lines = json.load(f)
 
+# Create Transformer object to convert lat/lon into x,y coords - https://gis.stackexchange.com/a/78944
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
 
+# Define scaling factor used to draw station coordinates in PyRoboSim environment.
 scaling_factor = 0.004
 
+# Create 2D plane station coordinates for PyRoboSim.
 station_coordinates = {
     name: (x * scaling_factor, y * scaling_factor)
     for name, (longitude, latitude) in stations.items()
     for x, y in [transformer.transform(longitude, latitude)]
 }
 
-def create_world():
-    """
-        Creates pyrobosim environment containing Simplified Scotland Rail Network
-    """
 
+# ========================================================================================
+#
+# METHOD DEFINITIONS
+#
+# ========================================================================================
+
+
+# ----------------------------------------------------------------------------------------
+# 
+# NAME:         create_world()
+# DESCRIPTION:  Creates a world to import into PyRoboSim.
+# PARAMETERS:   none
+# RETURNS:      World - a PyRoboSim world instance.
+#
+# REFERENCES:   - A modification of the demo.py file contained in PyRoboSim_ROS
+#               - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py 
+#
+# ----------------------------------------------------------------------------------------
+
+def create_world():
     # Initialise world environment.
     world = World()
 
@@ -114,6 +126,8 @@ def create_world():
         diagonal_motion = True,
         compress_path = True
     )
+
+    # Fix issue with latest_path in A* planner
     path_planner.latest_path = None
 
     # Add trains to network.
@@ -130,19 +144,35 @@ def create_world():
     return world
 
 
+# ----------------------------------------------------------------------------------------
+# 
+# NAME:         create_ros_node()
+# DESCRIPTION:  Initialises a new ROS node responsible for loading world into PyRoboSim GUI.
+# PARAMETERS:   none
+# RETURNS:      World - a PyRoboSim world instance.
+#
+# REFERENCES:   - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py 
+#
+# ----------------------------------------------------------------------------------------
+
 def create_ros_node():
-    """Initializes ROS node"""
     rclpy.init()
-
     world = create_world()
-
     node = WorldROSWrapper(world)
-
     node.get_logger().info("World loaded.")
-
     return node
 
 
+# ----------------------------------------------------------------------------------------
+# 
+# NAME:         main
+# DESCRIPTION:  The main entry point for this module.
+# PARAMETERS:   none
+# RETURNS:      none
+#
+# REFERENCES:   - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py 
+#
+# ----------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     node = create_ros_node()

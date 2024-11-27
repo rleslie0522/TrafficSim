@@ -7,7 +7,7 @@ def generate_launch_description():
         Node(
             package="trafficsim",
             output="screen",
-            executable="traffic"
+            executable="train"
         ),
         ExecuteProcess(
             cmd=[

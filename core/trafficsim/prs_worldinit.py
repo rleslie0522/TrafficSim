@@ -91,9 +91,9 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             'request_world_state'
         )
 
-        # Create Action clients to handle planning and moving robots
-        self.planning_client = None
-        self.follow_client = None
+        # # Create Action clients to handle planning and moving robots
+        # self.planning_client = None
+        # self.follow_client = None
 
         self.set_world(world)
 
@@ -338,7 +338,7 @@ def create_ros_node():
 
     world = create_world()
 
-    node = ExtendedWorldROSWrapper(world)
+    node = WorldROSWrapper(world)
 
     node.get_logger().info("World loaded.")
 

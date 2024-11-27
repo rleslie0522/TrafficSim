@@ -11,7 +11,7 @@ lines_json = {}
 
 lines = {
     "ECML": ["Aberdeen", "Portlethen", "Stonehaven", "Laurencekirk", "Montrose", "Arbroath", "Carnoustie", "Monifieth", "Dundee", "Leuchars", "Cupar", "Springfield", "Ladybank", "Markinch", "Kirkcaldy", "Kinghorn", "Burntisland", "Aberdour", "Dalgety_Bay", "Inverkeithing", "North_Queensferry", "Dalmeny", "Haymarket", "Edinburgh_Waverley"],
-    "EDI_GLA": ["Edinburgh_Waverley", "Haymarket", "Edinburgh_Park", "Linlithgow", "Polmont", "Falkirk_High", "Croy", "Lenzie", "Bishopbriggs", "Glasgow_Queen_Street"]
+    #"EDI_GLA": ["Edinburgh_Waverley", "Haymarket", "Edinburgh_Park", "Linlithgow", "Polmont", "Falkirk_High", "Croy", "Lenzie", "Bishopbriggs", "Glasgow_Queen_Street"]
 }
 
 # Generate Stations

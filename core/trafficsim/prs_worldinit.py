@@ -1,34 +1,39 @@
 #!/usr/bin/env python3
 
 
-"""
-    PRS_WORLDINIT.PY - CS4048 ROBOTICS
+# ========================================================================================
+#
+# NAME:         prs_worldinit.py
+# DESCRIPTION:  Generates Pyrobosim environment, incl. robots, task environment, lines,
+#               stations.
+# AUTHORS:      CALVIN EARNSHAW, FAVOUR JAM, KACPER KOMNATA, REBEKAH LESLIE, ANDREAS MAITA
+#
+# ========================================================================================
 
-    DESIGNED AND WRITTEN BY GROUP XXX IN 2024
-"""
 
-# ============================================
+# ========================================================================================
 #
 # IMPORT DEPENDENCIES
 #
-# ============================================
-import getpass
+# ========================================================================================
+
+# Import Python Common Classes
 import os
-import rclpy
-import numpy as np
 import threading
 import pathlib
-
 import time
 import json
 
+# Import ROS2 Common Library Classes
+import rclpy
 from rclpy.action import ActionServer, ActionClient
 
+# Import PyProj Transformer - used to perform geometric transformations for station coordinates.
 from pyproj import Transformer
 
+# Import PyRoboSim Classes
 from pyrobosim.core import Robot, World
 from pyrobosim.gui import start_gui
-from pyrobosim.gui import PyRoboSimGUI
 from pyrobosim.navigation import (
     ConstantVelocityExecutor,
     AStarPlanner
@@ -37,11 +42,7 @@ from pyrobosim.utils.general import get_data_folder
 from pyrobosim.utils.pose import Pose
 from pyrobosim_ros.ros_interface import WorldROSWrapper
 
-# ============================================
-#
-# IMPORT MESSAGE, SERVER, AND ACTION INTERFACES
-#
-# ============================================
+# Import Message, Action, Server interfaces.
 from std_msgs.msg import String
 from pyrobosim_msgs.srv import RequestWorldState
 from pyrobosim_msgs.action import FollowPath, PlanPath
@@ -49,35 +50,27 @@ from trafficsim_interfaces.srv import TestSrvInterface
 from trafficsim_interfaces.action import ExecuteTrainRoute
 
 
-class ExtendedWorldROSWrapper(WorldROSWrapper):
-    """
-        An extension of the `pyrobosim_ros.ros_interface.WorldROSWrapper` class
-        which will allow `trafficsim` to have finer control over the Pyrobosim
-        instance.
-    """
+# ========================================================================================
+#
+# NAME:         ExtendedWorldROSWrapper()
+# DESCRIPTION:  Used to extend the topics/actions/servers available within the Pyrobosim
+#               environment.
+# PARAMETERS:   world - an object of datatype pyrobosim.core.World
+#
+# ========================================================================================
 
+class ExtendedWorldROSWrapper(WorldROSWrapper):
+
+    # ------------------------------------------------------------------------------------
+    # Class Constructor
+    # ------------------------------------------------------------------------------------
     def __init__(self, world):
         super().__init__(
-            state_pub_rate=0.1,
+            state_pub_rate=0.1,     # Set robot_state publish rate to every 100ms.
             dynamics_rate=0.01
         )
 
-        # Accessible at topic /test_topic
-        self.test_topic = self.create_subscription(
-            String,
-            "test_topic",
-            self.msg_callback,
-            10
-        )
-
-        # Accessible at service /hello
-        self.test_srv = self.create_service(
-            TestSrvInterface,
-            'hello',
-            self.service_callback
-        )
-
-        # Create Action Server to handle train routing.
+        # Create Action Server to handle train routing requests - https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-an-Action-Server-Client/Py.html#writing-an-action-server
         self.train_routing_action = ActionServer(
             self,
             ExecuteTrainRoute,
@@ -85,34 +78,36 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             self.train_routing_callback
         )
 
-        # Create Service to get world state
+        # Create Service to get PyRoboSim world state - https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Py-Service-And-Client.html#write-the-client-node
         self.world_state_service = self.create_client(
             RequestWorldState,
             'request_world_state'
         )
 
-        # Create Action clients to handle planning and moving robots
+        # Create class-instance variables to define our PyRoboSim PlanPath and FollowPath action clients.
         self.planning_client = None
         self.follow_client = None
 
+        # Set the PyRoboSim world to the contents of the world passed into the constructor.
         self.set_world(world)
 
-    # Output a string published to /test_topic using msg type std_msgs/msg/String with yaml value "{data: 'Hello World'}"
-    def msg_callback(self, msg):
-        self.get_logger().info(f"Hello World - msg was: {msg.data}")
 
-    # Output what was received in the request body, based on the contents of the trafficsim interface.
-    def service_callback(self, request, response):
-        response.outputstr = f"I received: {request.inputstr}"
-        self.get_logger().info(f"Request input: {request.inputstr}")
-        return response
-
-    # Action Server for train routing. REF: https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-an-Action-Server-Client/Py.html
-    # Ref 2 - https://www.velotio.com/engineering-blog/async-features-in-python - needed to call other async functions (services)
+    # ------------------------------------------------------------------------------------
+    # 
+    # NAME:         train_routing_callback()
+    # DESCRIPTION:  Handles individual robot routing in PyRoboSim.
+    # PARAMETERS:   goal_handle - the contents of the goal callback from ROS 2
+    # RETURNS:      ExecuteTrainRoute.Result object, containing the result of the action.
+    #
+    # REFERENCES:   - https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-an-Action-Server-Client/Py.html
+    #               - https://www.velotio.com/engineering-blog/async-features-in-python
+    #
+    # ------------------------------------------------------------------------------------
     async def train_routing_callback(self, goal_handle):
-        # Use the /request_world_state service to get information about current robots.
+        # Call the /request_world_state service to get information about trains, lines,
+        # and stations in current PyRoboSim environment.
         if not self.world_state_service.wait_for_service(timeout_sec=5.0):
-            self.get_logger().error('Service not available, aborting goal.')
+            self.get_logger().error('Cannot retrive current PyRoboSim state - aborting.')
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
         world_state_request = RequestWorldState.Request()
@@ -120,19 +115,21 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
         future = self.world_state_service.call_async(world_state_request)
         response = await future
 
-        # Use response from /request_world_state to check if robot name passed in as parameter is valid.
-        # If not, then abort this action.
-        if goal_handle.request.train_id not in [robot.name for robot in response.state.robots]:
+        # Store list of all train IDs currently in PyRoboSim environment.
+        trains = [robot.name for robot in response.state.robots]
+
+        # Get initial state information about the train involved in this routing callback.
+        current_robot_state = [robot for robot in response.state.robots if robot.name == goal_handle.request.train_id][0]
+
+        # Use response from /request_world_state to check if robot name passed in as
+        # parameter is valid. If not, then abort.
+        if goal_handle.request.train_id not in trains:
             self.get_logger().error('Train ID not in Pyrobosim environment, aborting routing attempt.')
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
 
-        # Get current robot state
-        current_robot_state = [robot for robot in response.state.robots if robot.name == goal_handle.request.train_id][0]
-        self.get_logger().info(f'TRAIN INFORMATION: {current_robot_state}')
-
-        # Use response from /request_world_state to check if all stations passed in as parameters exist
-        # within the environment. If not, then abort.
+        # Use response from /request_world_state to check if all stations passed in
+        # as parameters exist within the environment. If not, then abort.
         nonexistent_stations = set(goal_handle.request.stops).difference(
             set([hallway.room_start for hallway in response.state.hallways] +
                 [hallway.room_end for hallway in response.state.hallways]
@@ -143,11 +140,12 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
 
-        # Train name is correct, we now attempt to create the train route specified in the parameters.
+        # Log attempt to create a train route for the Train ID given in the action parameters.
         self.get_logger().info(f'Routing Train ID: {goal_handle.request.train_id} to destination: {goal_handle.request.destination}...')
         self.get_logger().info(f'This train will call at: {', '.join(goal_handle.request.stops[:-1])}, and {goal_handle.request.stops[-1]}')
 
         # Create two Action Clients - one to communicate with Pyrobosim's Path Planner, the other for Pyrobosim Follow Path action.
+        # https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-an-Action-Server-Client/Py.html#writing-an-action-client
         self.planning_client = ActionClient(
             self,
             PlanPath,
@@ -159,17 +157,28 @@ class ExtendedWorldROSWrapper(WorldROSWrapper):
             f"{goal_handle.request.train_id}/follow_path"
         )
 
+        # Abort the Routing Action if either the PlanPath or FollowPath Action Servers are unavailable.
         if not self.planning_client.wait_for_server(timeout_sec=5.0):
             self.get_logger().error(f'{goal_handle.request.train_id} - Cannot initialise planning client - server unavailable. Aborting...')
             goal_handle.abort()
             return ExecuteTrainRoute.Result(success=False)
+        if not self.follow_client.wait_for_server(timeout_sec=5.0):
+            self.get_logger().error(f'{goal_handle.request.train_id} - Cannot initialise follow client - server unavailable. Aborting...')
+            goal_handle.abort()
+            return ExecuteTrainRoute.Result(success=False)
 
+        # Iterate through each station given in the 'stops' parameter of the action request, call the PlanPath action client from current stop to
+        # next stop in the 'stops' array, then follow said path. Based on the 'send_goal' function seen here: 
+        # https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Writing-an-Action-Server-Client/Py.html#writing-an-action-server
         for i in range(0, len(goal_handle.request.stops) + 1):
+            # Create PlanPath Action Request
             planning_goal = PlanPath.Goal()
             planning_goal.target_location = goal_handle.request.stops[i] if i < len(goal_handle.request.stops) else goal_handle.request.destination
 
+            # Programmatically send 'ros2 action send_goal' command to PlanPath Action Server.
             planning_goal_handle = await self.planning_client.send_goal_async(planning_goal)
 
+            # Abort routing action if the action server rejects the request.
             if not planning_goal_handle.accepted:
                 self.get_logger().error(f'{goal_handle.request.train_id} - Cannot plan train path - goal rejected by server. Aborting...')
                 goal_handle.abort()
@@ -245,10 +254,6 @@ with open(station_dataset_path.joinpath("RailStationCoords.json"), 'r') as f:
 with open(station_dataset_path.joinpath('RailLines.json'), 'r') as f:
     lines = json.load(f)
 
-depots = {
-    # "DEPOT_HAYMARKET": (-3.235502, 55.942165)
-}
-
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
 
 scaling_factor = 0.004
@@ -258,13 +263,6 @@ station_coordinates = {
     for name, (longitude, latitude) in stations.items()
     for x, y in [transformer.transform(longitude, latitude)]
 }
-
-depot_coordinates = {
-    name: (x * scaling_factor, y * scaling_factor)
-    for name, (longitude, latitude) in depots.items()
-    for x, y in [transformer.transform(longitude, latitude)]
-}
-
 
 def create_world():
     """
@@ -283,17 +281,6 @@ def create_world():
     # Iterate through stations given above and add to pyrobosim environment.
     room_size = 5
     for name, (x, y) in station_coordinates.items():
-        footprint = [
-            (x - room_size / 2, y - room_size / 2), #bottom left
-            (x - room_size / 2, y + room_size / 2), #top left
-            (x + room_size / 2, y + room_size / 2), #top right
-            (x + room_size / 2, y - room_size / 2)  #bottom right
-        ]
-        world.add_room(name=name, footprint=footprint, color=[0, 0, 0])
-
-    # Add depots to pyrobosim environment.
-    room_size = 2
-    for name, (x,y) in depot_coordinates.items():
         footprint = [
             (x - room_size / 2, y - room_size / 2), #bottom left
             (x - room_size / 2, y + room_size / 2), #top left

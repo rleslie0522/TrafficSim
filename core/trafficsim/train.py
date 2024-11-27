@@ -42,10 +42,10 @@ from pyrobosim_msgs.action import FollowPath, PlanPath
 from trafficsim_interfaces.srv import TestSrvInterface
 from trafficsim_interfaces.action import ExecuteTrainRoute
 
-class RailTrafficController(Node):
+class TrainController(Node):
 
     def __init__(self):
-        super().__init__("Traffic_Controller")
+        super().__init__("Train_Controller")
 
         # Accessible at topic /test_topic
         self.test_topic = self.create_subscription(
@@ -218,7 +218,7 @@ class RailTrafficController(Node):
 
 def main():
     rclpy.init()
-    node = RailTrafficController()
+    node = TrainController()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

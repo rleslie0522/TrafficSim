@@ -16,7 +16,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/TestSrvInterface.srv"
-  "action/ExecuteTrainRoute.action"
+  "action/RouteTrain.action"
   DEPENDENCIES geometry_msgs
 )
 

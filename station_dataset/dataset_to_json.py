@@ -11,16 +11,16 @@ lines_json = {}
 
 lines = {
     "ECML": ["Aberdeen", "Portlethen", "Stonehaven", "Laurencekirk", "Montrose", "Arbroath", "Carnoustie", "Monifieth", "Dundee", "Leuchars", "Cupar", "Springfield", "Ladybank", "Markinch", "Kirkcaldy", "Kinghorn", "Burntisland", "Aberdour", "Dalgety_Bay", "Inverkeithing", "North_Queensferry", "Dalmeny", "Haymarket", "Edinburgh_Waverley"],
-    # "EDI_GLA": ["Edinburgh_Waverley", "Haymarket", "Edinburgh_Park", "Linlithgow", "Polmont", "Falkirk_High", "Croy", "Lenzie", "Bishopbriggs", "Glasgow_Queen_Street"],
-    # "ABD_INV": ["Aberdeen", "Dyce", "Kintore", "Inverurie", "Insch", "Huntly", "Keith", "Elgin", "Forres", "Nairn", "Inverness_Airport", "Inverness"],
-    # "INV_WCK": ["Inverness", "Beauly", "Muir_of_Ord", "Conon_Bridge", "Dingwall", "Alness", "Invergordon", "Fearn", "Tain", "Ardgay", "Lairg", "Golspie", "Brora", "Helmsdale", "Forsinard", "Georgemas_Junction", "Wick"],
-    # "WCK_TRS": ["Wick", "Georgemas_Junction", "Thurso"],
-    # "INV_KYL": ["Inverness", "Beauly", "Muir_of_Ord", "Conon_Bridge", "Dingwall", "Garve", "Achanalt", "Achnasheen", "Achnashellach", "Strathcarron", "Stromeferry", "Plockton", "Duirinish", "Kyle_of_Lochalsh"],
-    # "EDI_INV": ["Ladybank", "Perth", "Pitlochry", "Blair_Atholl", "Dalwhinnie", "Newtonmore", "Kingussie", "Aviemore", "Carrbridge", "Inverness"],
-    # "DEE_CRO": ["Dundee", "Invergowrie", "Perth", "Gleneagles", "Dunblane", "Bridge_of_Allan", "Stirling", "Larbert", "Falkirk_High"],
-    # "GLA_OBN": ["Glasgow_Queen_Street", "Dumbarton_Central", "Helensburgh_Upper", "Garelochhead", "Arrochar_and_Tarbet", "Ardlui", "Tyndrum_Lower", "Dalmally", "Loch_Awe", "Taynuilt", "Connel_Ferry", "Oban"],
-    # "GLA_FTW": ["Tyndrum_Lower", "Bridge_of_Orchy", "Rannoch", "Corrour", "Tulloch", "Roy_Bridge", "Spean_Bridge", "Fort_William"],
-    # "FTW_MAL": ["Fort_William", "Banavie", "Corpach", "Loch_Eil_Outward_Bound", "Locheilside", "Glenfinnan", "Lochailort", "Beasdale", "Arisaig", "Morar", "Mallaig"]
+    "EDI_GLA": ["Edinburgh_Waverley", "Haymarket", "Edinburgh_Park", "Linlithgow", "Polmont", "Falkirk_High", "Croy", "Lenzie", "Bishopbriggs", "Glasgow_Queen_Street"],
+    "ABD_INV": ["Aberdeen", "Dyce", "Kintore", "Inverurie", "Insch", "Huntly", "Keith", "Elgin", "Forres", "Nairn", "Inverness_Airport", "Inverness"],
+    "INV_WCK": ["Inverness", "Beauly", "Muir_of_Ord", "Conon_Bridge", "Dingwall", "Alness", "Invergordon", "Fearn", "Tain", "Ardgay", "Lairg", "Golspie", "Brora", "Helmsdale", "Forsinard", "Georgemas_Junction", "Wick"],
+    "WCK_TRS": ["Wick", "Georgemas_Junction", "Thurso"],
+    "INV_KYL": ["Inverness", "Beauly", "Muir_of_Ord", "Conon_Bridge", "Dingwall", "Garve", "Achanalt", "Achnasheen", "Achnashellach", "Strathcarron", "Stromeferry", "Plockton", "Duirinish", "Kyle_of_Lochalsh"],
+    "EDI_INV": ["Ladybank", "Perth", "Pitlochry", "Blair_Atholl", "Dalwhinnie", "Newtonmore", "Kingussie", "Aviemore", "Carrbridge", "Inverness"],
+    "DEE_CRO": ["Dundee", "Invergowrie", "Perth", "Gleneagles", "Dunblane", "Bridge_of_Allan", "Stirling", "Larbert", "Falkirk_High"],
+    "GLA_OBN": ["Glasgow_Queen_Street", "Dumbarton_Central", "Helensburgh_Upper", "Garelochhead", "Arrochar_and_Tarbet", "Ardlui", "Tyndrum_Lower", "Dalmally", "Loch_Awe", "Taynuilt", "Connel_Ferry", "Oban"],
+    "GLA_FTW": ["Tyndrum_Lower", "Bridge_of_Orchy", "Rannoch", "Corrour", "Tulloch", "Roy_Bridge", "Spean_Bridge", "Fort_William"],
+    "FTW_MAL": ["Fort_William", "Banavie", "Corpach", "Loch_Eil_Outward_Bound", "Locheilside", "Glenfinnan", "Lochailort", "Beasdale", "Arisaig", "Morar", "Mallaig"]
 }
 
 # Generate Stations

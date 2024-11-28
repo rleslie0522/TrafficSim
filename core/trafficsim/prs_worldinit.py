@@ -22,6 +22,7 @@ import os
 import threading
 import pathlib
 import json
+import copy
 
 # Import ROS2 Common Library Classes
 import rclpy
@@ -40,6 +41,9 @@ from pyrobosim.utils.general import get_data_folder
 from pyrobosim.utils.pose import Pose
 from pyrobosim_ros.ros_interface import WorldROSWrapper
 
+from rclpy.executors import MultiThreadedExecutor, Executor
+from trafficsim.train_robot import TrainRobot
+from trafficsim.pathing import StationGraph
 
 # ========================================================================================
 #
@@ -63,6 +67,7 @@ with open(station_dataset_path.joinpath('RailLines.json'), 'r') as f:
 with open(station_dataset_path.joinpath('Trains.json'), 'r') as f:
     trains = json.load(f)["trains"]
 
+
 # Create Transformer object to convert lat/lon into x,y coords - https://gis.stackexchange.com/a/78944
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
 
@@ -75,6 +80,9 @@ station_coordinates = {
     for name, (longitude, latitude) in stations.items()
     for x, y in [transformer.transform(longitude, latitude)]
 }
+
+# print(station_coordinates)
+station_graph = StationGraph(station_coordinates, lines)
 
 # Define train types.
 train_types = {
@@ -126,18 +134,18 @@ class NavigationOptions:
 
 
 # ----------------------------------------------------------------------------------------
-# 
+#
 # NAME:         create_world()
 # DESCRIPTION:  Creates a world to import into PyRoboSim.
 # PARAMETERS:   none
 # RETURNS:      World - a PyRoboSim world instance.
 #
 # REFERENCES:   - A modification of the demo.py file contained in PyRoboSim_ROS
-#               - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py 
+#               - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py
 #
 # ----------------------------------------------------------------------------------------
 
-def create_world():
+def create_world(executor: Executor):
     # Initialise world environment.
     world = World()
 
@@ -157,51 +165,23 @@ def create_world():
             (x + room_size / 2, y - room_size / 2)  #bottom right
         ]
         world.add_room(name=name, footprint=footprint, color=[0, 0, 0])
-    
-    # for name, (x,y) in station_coordinates.items():
-    #     platform = world.add_location(
-    #         category="desk",
-    #         parent=name, 
-    #         pose=Pose(
-    #             x = x,
-    #             y = y,
-    #             yaw = 0.0
-    #         ),
-    #         name=f"{name}_Platform",
-    #         is_charger=True if name in ["Edinburgh_Waverley", "Aberdeen", "Glasgow_Queen_Street", "Inverness", "Dundee"] else False
-    #     )
 
     # Add rail lines connecting stations.
     for name, (start, end) in lines.items():
         world.add_hallway(room_start=start, room_end=end, name=name, width=1.25, color=[0.2, 0.2, 0.2])
 
-    # Initialise A* Path Planner - TODO Kacper to consider creating our own implementation of this algorithm?
-    path_planner = AStarPlanner(
-        world = world,
-        grid_resolution = 0.5,
-        grid_inflation_radius = 0.1,
-        heuristic = "euclidean",
-        diagonal_motion = True,
-        compress_path = True
-    )
-    path_planner.latest_path = None
+
 
     # Add trains to network.
     for train in trains:
-        robot = Robot(
+        robot = TrainRobot(
             name=f"{train["operator"]}_{train["class"]}{train["id"]}",
             radius=0.5,
-            path_executor=ConstantVelocityExecutor(
-                linear_velocity=train_types[train["class"]]["linear_velocity"]
-            ),
-            path_planner=path_planner,
             color=train_types[train["class"]]["colour"],
             pose=Pose(0, 0, 0, 0, 0, 0),
-            action_execution_options={
-                "navigate": NavigationOptions(
-                    battery_usage=train_types[train["class"]]["battery_usage"]
-                )
-            }
+            station_graph=copy.deepcopy(station_graph),
+            current_station_name=train["starting_station"],
+            executor=executor
         )
         world.add_robot(robot, loc=train["starting_station"])
 
@@ -209,41 +189,51 @@ def create_world():
 
 
 # ----------------------------------------------------------------------------------------
-# 
+#
 # NAME:         create_ros_node()
 # DESCRIPTION:  Initialises a new ROS node responsible for loading world into PyRoboSim GUI.
 # PARAMETERS:   none
 # RETURNS:      World - a PyRoboSim world instance.
 #
-# REFERENCES:   - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py 
+# REFERENCES:   - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py
 #
 # ----------------------------------------------------------------------------------------
 
-def create_ros_node():
-    rclpy.init()
-    world = create_world()
+def create_ros_node(executor: Executor):
+    world = create_world(executor)
     node = WorldROSWrapper(world)
     node.get_logger().info("World loaded.")
     return node
 
 
+def threaded_startup(executor: Executor, world_node: WorldROSWrapper):
+    world_node.start(True, False)
+    executor.add_node(world_node)
+    world_node.executor = executor
+    try:
+        executor.spin()
+    finally:
+        world_node.shutdown()
+
 # ----------------------------------------------------------------------------------------
-# 
+#
 # NAME:         main
 # DESCRIPTION:  The main entry point for this module.
 # PARAMETERS:   none
 # RETURNS:      none
 #
-# REFERENCES:   - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py 
+# REFERENCES:   - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py
 #
 # ----------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    node = create_ros_node()
+    rclpy.init()
+    executor = MultiThreadedExecutor(num_threads=os.cpu_count())
+    world_node = create_ros_node(executor)
 
     # Start ROS node in separate thread
-    ros_thread = threading.Thread(target=lambda: node.start(wait_for_gui=True))
+    ros_thread = threading.Thread(target=lambda: threaded_startup(executor, world_node))
     ros_thread.start()
 
     # Start GUI in main thread
-    start_gui(node.world)
+    start_gui(world_node.world)

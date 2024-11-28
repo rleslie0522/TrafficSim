@@ -27,6 +27,7 @@ from rclpy.node import Node
 # Import Message, Server, and Action Interfaces
 from rclpy.action import ActionServer
 from trafficsim_interfaces.action import RouteTrain
+from trafficsim_interfaces.msg import UpdateConnection
 from trafficsim.pathing import StationGraph, Station, Connection, PathFollower
 from pyrobosim.core.robot import Robot
 
@@ -62,8 +63,6 @@ class TrainController(Node):
 
         self.robot = robot
         self.station_graph = station_graph
-        # self.station_graph = station_graph # dynamic
-        # self.station_dict = station_dict # constant
         match station_graph.get_node(current_station_name):
             case None:
                 raise ValueError(f"Station {current_station_name} not found in station graph")
@@ -77,29 +76,40 @@ class TrainController(Node):
             self.route_train_callback
         )
 
+        self.connection_claim_publisher = self.create_publisher(UpdateConnection, "connection_claim", 10)
+        self.connection_claim_subscriber = self.create_subscription(UpdateConnection, "connection_claim", self.connection_claim_callback, 10)
+
+    def connection_claim_callback(self, msg: UpdateConnection):
+        start = self.station_graph.get_node(msg.start)
+        end = self.station_graph.get_node(msg.end)
+        if start is None or end is None:
+            self.get_logger().error(f"Invalid connection claim update: {msg}")
+            return
+        self.station_graph.get_connection_between_nodes(start, end).claimed = msg.claimed
+
     def _follow_path_to_destination(self, path: list[Station]):
         self.get_logger().info(f"Following path: {path}")
         self.robot.executing_nav = True
         for station in path[1:]:
+            connection = self.station_graph.get_connection_between_nodes(self.current_position, station)
+            while connection.claimed:
+                self.get_logger().info(f"Connection between {self.current_position.name} and {station.name} is claimed, waiting")
+                time.sleep(1.0)
             self._move_to_neighboring_station(station)
+
         self.robot.executing_nav = False
 
-
-    def claim_connection(self, start: Station, end: Station):
-        # TODO
-        pass
-
-    def unclaim_connection(self, start: Station, end: Station):
-        # TODO
-        pass
+    def update_connection(self, start: Station, end: Station, claimed: bool):
+        msg = UpdateConnection()
+        msg.start = start.name
+        msg.end = end.name
+        msg.claimed = claimed
+        self.connection_claim_publisher.publish(msg)
 
     # Assumes station is valid neighbor of current station
     def _move_to_neighboring_station(self, station: Station):
         self.get_logger().info(f"Moving to station: {station.name}")
-        connection = self.station_graph.get_connection_between_nodes(self.current_position, station)
-        if connection.claimed:
-            return False
-        self.claim_connection(self.current_position, station)
+        self.update_connection(self.current_position, station, True)
 
         path_follower = PathFollower(self.robot.get_pose(), station.pose)
 
@@ -111,8 +121,9 @@ class TrainController(Node):
             self.robot.set_pose(path_follower.get_next_pose(curr_time - prev_time))
             prev_time = curr_time
 
-        self.unclaim_connection(self.current_position, station)
+        self.update_connection(self.current_position, station, False)
         self.current_position = station
+        return True
 
     async def route_train_callback(self, goal_handle):
         # TODO race condition resolution if two trains take the same path at the same time

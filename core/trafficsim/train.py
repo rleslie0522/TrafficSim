@@ -123,7 +123,7 @@ class TrainController(Node):
         self.current_position = station
         return True
 
-    async def route_train_callback(self, goal_handle):
+    def route_train_callback(self, goal_handle):
         # TODO race condition resolution if two trains take the same path at the same time
         self.get_logger().info(f"Received goal: {goal_handle.request}")
         dest_name = goal_handle.request.destination

@@ -1,0 +1,8 @@
+string origin
+---
+string api_status_code
+string destination
+string origin_start_time
+string destination_arrival_time
+string headcode
+string atoc_name

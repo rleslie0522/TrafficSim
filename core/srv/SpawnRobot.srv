@@ -1,5 +1,0 @@
-string robot_name
-string station_name
----
-bool success
-string message

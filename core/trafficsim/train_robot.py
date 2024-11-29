@@ -1,11 +1,7 @@
-from pyrobosim.core import Robot, World
+from pyrobosim.core import Robot
 from trafficsim.pathing import StationGraph
 from trafficsim.train import TrainController
-import rclpy
-from rclpy.node import Node
 from rclpy.executors import Executor
-
-import threading
 
 class TrainRobot(Robot):
     def __init__(self, name, executor: Executor, station_graph: StationGraph, current_station_name: str, **kwargs):

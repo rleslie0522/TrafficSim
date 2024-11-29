@@ -20,15 +20,13 @@
 import time
 
 # Import ROS2 Common Library Classes
-import rclpy
-import rclpy.action
 from rclpy.node import Node
 
 # Import Message, Server, and Action Interfaces
 from rclpy.action import ActionServer
 from trafficsim_interfaces.action import RouteTrain
 from trafficsim_interfaces.msg import UpdateConnection
-from trafficsim.pathing import StationGraph, Station, Connection, PathFollower
+from trafficsim.pathing import StationGraph, Station, PathFollower
 from pyrobosim.core.robot import Robot
 
 # ========================================================================================

@@ -31,12 +31,8 @@ import rclpy
 from pyproj import Transformer
 
 # Import PyRoboSim Classes
-from pyrobosim.core import Robot, World
+from pyrobosim.core import World
 from pyrobosim.gui import start_gui
-from pyrobosim.navigation import (
-    ConstantVelocityExecutor,
-    AStarPlanner
-)
 from pyrobosim.utils.general import get_data_folder
 from pyrobosim.utils.pose import Pose
 from pyrobosim_ros.ros_interface import WorldROSWrapper

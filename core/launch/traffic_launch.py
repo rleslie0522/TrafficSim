@@ -4,11 +4,11 @@ from launch.actions import ExecuteProcess
 
 def generate_launch_description():
     return LaunchDescription([
-        # Node(
-        #     package="trafficsim",
-        #     output="screen",
-        #     executable="train"
-        # ),
+        Node(
+            package="trafficsim",
+            output="screen",
+            executable="scheduler"
+        ),
         ExecuteProcess(
             cmd=[
                 "ros2 run pyrobosim_ros prs_worldinit.py"

@@ -63,7 +63,6 @@ with open(station_dataset_path.joinpath('RailLines.json'), 'r') as f:
 with open(station_dataset_path.joinpath('Trains.json'), 'r') as f:
     trains = json.load(f)["trains"]
 
-
 # Create Transformer object to convert lat/lon into x,y coords - https://gis.stackexchange.com/a/78944
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
 
@@ -200,6 +199,17 @@ def create_ros_node(executor: Executor):
     node.get_logger().info("World loaded.")
     return node
 
+
+# ----------------------------------------------------------------------------------------
+#
+# NAME:         threaded_startup()
+# DESCRIPTION:  TODO ADD DESCRIPTION.
+# PARAMETERS:   TODO
+# RETURNS:      none
+#
+# REFERENCES:   TODO
+#
+# ----------------------------------------------------------------------------------------
 
 def threaded_startup(executor: Executor, world_node: WorldROSWrapper):
     world_node.start(True, False)

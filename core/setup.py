@@ -24,7 +24,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'train = trafficsim.train:main'
+            'train = trafficsim.train:main',
+            'scheduler = trafficsim.scheduler:main'
         ],
     },
 )

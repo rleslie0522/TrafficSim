@@ -2,9 +2,12 @@ from bs4 import BeautifulSoup
 import json
 import pathlib
 
+import csv
+
 parent_path = pathlib.Path(__file__).parent.resolve()
 
-soup = BeautifulSoup(open(parent_path.joinpath('Category_Railway_stations_served_by_ScotRail.xml'), 'r'), 'xml')
+# soup = BeautifulSoup(open(parent_path.joinpath('Category_Railway_stations_served_by_ScotRail.xml'), 'r'), 'xml')
+stations_csv = csv.reader(open(parent_path.joinpath("stations.csv"), "r"), delimiter=",")
 
 stations_json = {}
 lines_json = {}
@@ -23,14 +26,14 @@ lines = {
     "GLA_OBN": ["Glasgow_Queen_Street", "Dumbarton_Central", "Helensburgh_Upper", "Garelochhead", "Arrochar_and_Tarbet", "Ardlui", "Tyndrum_Lower", "Dalmally", "Loch_Awe", "Taynuilt", "Connel_Ferry", "Oban"],
     "GLA_FTW": ["Tyndrum_Lower", "Bridge_of_Orchy", "Rannoch", "Corrour", "Tulloch", "Roy_Bridge", "Spean_Bridge", "Fort_William"],
     "FTW_MAL": ["Fort_William", "Banavie", "Corpach", "Loch_Eil_Outward_Bound", "Locheilside", "Glenfinnan", "Lochailort", "Beasdale", "Arisaig", "Morar", "Mallaig"],
-    "EDI-TWD": ["Edinburgh_Waverley", "Brunstane", "Shawfair", "Eskbank", "Newtongrange", "Gorebridge", "Stow", "Galashiels", "Tweedbank"],
+    "EDI-TWD": ["Edinburgh_Waverley", "Brunstane", "Eskbank", "Newtongrange", "Gorebridge", "Stow", "Galashiels", "Tweedbank"],
     "EDI-NBW": ["Edinburgh_Waverley", "Brunstane", "Musselburgh", "Wallyford", "Prestonpans", "Longniddry", "Drem", "North_Berwick"],
     "DRE-DBR": ["Drem", "Dunbar"],
     "GLA_WMB": ["Glasgow_Queen_Street", "Cardonald", "Hillington_West", "Paisley_Gilmour_Street", "Bishopton", "Langbank", "Woodhall", "Port_Glasgow", "Whinhill", "Drumfrochar", "Branchton", "Inverkip", "Wemyss_Bay"],
-    "GLA_AYR": ["Paisley_Gilmour_Street", "Johnstone", "Milliken_Park", "Howwood", "Lochwinnoch", "Glengarnock", "Dalry", "Kilwinning", "Irvine", "Barassie", "Troon", "Prestwick_Town", "Newton-on-Ayr", "Ayr"],
+    "GLA_AYR": ["Paisley_Gilmour_Street", "Johnstone", "Milliken_Park", "Howwood", "Lochwinnoch", "Glengarnock", "Dalry", "Kilwinning", "Irvine", "Barassie", "Troon", "Prestwick_Town", "Newton-On-Ayr", "Ayr"],
     "KWN_ARD": ["Kilwinning", "Stevenston", "Saltcoats", "Ardrossan_Harbour"],
     "KWN_LGS": ["Saltcoats", "West_Kilbride", "Fairlie", "Largs"],
-    "GLA_SRR": ["Glasgow_Queen_Street", "Crossmyloof", "Kennishead", "Nitshill", "Barrhead", "Dunlop", "Stewarton", "Kilmaurs", "Barassie", "Troon", "Prestwick_Town", "Newton-on-Ayr", "Ayr", "Maybole", "Girvan", "Barrhill", "Stranraer"],
+    "GLA_SRR": ["Glasgow_Queen_Street", "Crossmyloof", "Kennishead", "Nitshill", "Barrhead", "Dunlop", "Stewarton", "Kilmaurs", "Barassie", "Troon", "Prestwick_Town", "Newton-On-Ayr", "Ayr", "Maybole", "Girvan", "Barrhill", "Stranraer"],
     "GLA_CAR": ["Kilmaurs", "Kilmarnock", "Auchinleck", "New_Cumnock", "Kirkconnel", "Sanquhar", "Dumfries", "Annan", "Gretna_Green", "Carlisle"],
     "EDI_GLC": ["Haymarket", "Slateford", "Wester_Hailes", "Curriehill", "Kirknewton", "Livingston_South", "West_Calder", "Addiewell", "Breich", "Fauldhouse", "Shotts", "Hartwood", "Cleland", "Carfin", "Bellshill", "Uddingston", "Newton", "Cambuslang", "Glasgow_Queen_Street"],
     "EDI_HEL": ["Haymarket", "Edinburgh_Park", "Curriehill", "Kirknewton", "Livingston_North", "Bathgate", "Armadale", "Blackridge", "Caldercruix", "Drumgelloch", "Airdrie", "Coatbridge_Sunnyside", "Easterhouse", "Glasgow_Queen_Street", "Dumbarton_Central", "Helensburgh_Upper"]
@@ -38,9 +41,9 @@ lines = {
 
 
 # Generate Stations
-for station in soup.findAll("wpt"):
-    coords = (station['lon'], station['lat'])
-    name = station.contents[1].string.replace('railway', '').replace('station', '').replace('(Scotland)', '').replace("(Fife)", "").rstrip().replace(" ", "_")
+for station in stations_csv:
+    coords = (station[2], station[1])
+    name = station[0].replace("&", "and").rstrip().replace(" ", "_")
     for lineset in lines.items():
         if name in lineset[1]:
             stations_json[name] = coords

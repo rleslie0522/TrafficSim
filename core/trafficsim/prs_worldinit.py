@@ -175,7 +175,8 @@ def create_world(executor: Executor):
             pose=Pose(0, 0, 0, 0, 0, 0),
             station_graph=copy.deepcopy(station_graph),
             current_station_name=train["starting_station"],
-            executor=executor
+            executor=executor,
+            speed_mult=train_types[train["class"]]["linear_velocity"],
         )
         world.add_robot(robot, loc=train["starting_station"])
 

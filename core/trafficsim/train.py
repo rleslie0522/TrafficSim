@@ -56,7 +56,7 @@ class TrainController(Node):
     # Class Constructor
     #
     # ------------------------------------------------------------------------------------
-    def __init__(self, name: str, robot: Robot, station_graph: StationGraph, current_station_name: str):
+    def __init__(self, name: str, robot: Robot, station_graph: StationGraph, current_station_name: str, speed_mult: float):
         super().__init__(name)
 
         self.robot = robot
@@ -76,6 +76,7 @@ class TrainController(Node):
 
         self.connection_claim_publisher = self.create_publisher(UpdateConnection, "connection_claim", 10)
         self.connection_claim_subscriber = self.create_subscription(UpdateConnection, "connection_claim", self.connection_claim_callback, 10)
+        self.speed_mult = speed_mult
 
     def connection_claim_callback(self, msg: UpdateConnection):
         start = self.station_graph.get_node(msg.start)
@@ -109,7 +110,7 @@ class TrainController(Node):
         self.get_logger().info(f"Moving to station: {station.name}")
         self.update_connection(self.current_position, station, True)
 
-        path_follower = PathFollower(self.robot.get_pose(), station.pose)
+        path_follower = PathFollower(self.robot.get_pose(), station.pose, self.speed_mult)
 
         prev_time = time.time()
 

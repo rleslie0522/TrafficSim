@@ -15,7 +15,3 @@ class TrainRobot(Robot):
     def startup_node(self, executor: Executor, station_graph: StationGraph, current_station_name: str):
         self.node = TrainController(self.name, self, station_graph, current_station_name)
         executor.add_node(self.node)
-
-
-
-

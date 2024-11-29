@@ -170,8 +170,6 @@ def create_world(executor: Executor):
     for name, (start, end) in lines.items():
         world.add_hallway(room_start=start, room_end=end, name=name, width=1.25, color=[0.2, 0.2, 0.2])
 
-
-
     # Add trains to network.
     for train in trains:
         robot = TrainRobot(

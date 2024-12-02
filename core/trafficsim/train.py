@@ -60,6 +60,7 @@ class TrainController(Node):
         super().__init__(name)
 
         self.robot = robot
+        self.battery_usage = 0.01
         self.station_graph = station_graph
         match station_graph.get_node(current_station_name):
             case None:
@@ -118,6 +119,8 @@ class TrainController(Node):
             time.sleep(0.1)
             curr_time = time.time()
             self.robot.set_pose(path_follower.get_next_pose(curr_time - prev_time))
+            self.get_logger().info(f"{self.robot.name} Battery Level: {self.robot.battery_level}")
+            self.robot.battery_level -= self.battery_usage
             prev_time = curr_time
 
         self.update_connection(self.current_position, station, False)

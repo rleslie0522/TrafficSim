@@ -45,8 +45,7 @@ from datetime import datetime
 # DESCRIPTION:  A node to handle train movement via set points (rooms) in the environment.
 # PARAMETERS:   none
 #
-# REFERENCES:   - A modification of the demo.py file contained in PyRoboSim_ROS
-#               - https://github.com/sea-bass/pyrobosim/blob/main/pyrobosim_ros/examples/demo.py
+# REFERENCES:   - TODO
 #
 # ----------------------------------------------------------------------------------------
 
@@ -62,15 +61,13 @@ class TrainController(Node):
     def __init__(self, name: str, robot: Robot, station_graph: StationGraph, current_station_name: str, speed_mult: float):
         super().__init__(name)
 
+        # Link instance of Robot class to Train object.
         self.robot = robot
-        self.battery_usage = 0.01
-        self.station_graph = station_graph
-        match station_graph.get_node(current_station_name):
-            case None:
-                raise ValueError(f"Station {current_station_name} not found in station graph")
-            case current_position:
-                self.current_position = current_position
 
+        # Battery consumption.
+        self.battery_usage = 0.01
+
+        # Create /route_train action server - used to move train to a given destination, no stops.
         self.route_train_action = ActionServer(
             self,
             RouteTrain,
@@ -78,6 +75,7 @@ class TrainController(Node):
             self.route_train_callback
         )
 
+        # Create /follow_service_timetable server - used to trigger automated movement based on timetable.
         self.service_route_action = ActionServer(
             self,
             ServiceRoute,
@@ -85,10 +83,26 @@ class TrainController(Node):
             self.follow_service_timetable_callback
         )
 
+        # Initialise pathfinder using custom path planner.
+        self.station_graph = station_graph
+        match station_graph.get_node(current_station_name):
+            case None:
+                raise ValueError(f"Station {current_station_name} not found in station graph")
+            case current_position:
+                self.current_position = current_position
+        
         self.connection_claim_publisher = self.create_publisher(UpdateConnection, "connection_claim", 10)
         self.connection_claim_subscriber = self.create_subscription(UpdateConnection, "connection_claim", self.connection_claim_callback, 10)
         self.speed_mult = speed_mult
 
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         connection_claim_callback
+    # DESCRIPTION:  TODO
+    # PARAMETERS:   TODO
+    # RETURNS:      TODO
+    #
+    # ------------------------------------------------------------------------------------
     def connection_claim_callback(self, msg: UpdateConnection):
         start = self.station_graph.get_node(msg.start)
         end = self.station_graph.get_node(msg.end)
@@ -97,6 +111,14 @@ class TrainController(Node):
             return
         self.station_graph.get_connection_between_nodes(start, end).claimed = msg.claimed
 
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         _follow_path_to_destination
+    # DESCRIPTION:  TODO
+    # PARAMETERS:   TODO
+    # RETURNS:      TODO
+    #
+    # ------------------------------------------------------------------------------------
     def _follow_path_to_destination(self, path: list[Station]):
         self.get_logger().info(f"Following path: {path}")
         self.robot.executing_nav = True
@@ -109,6 +131,14 @@ class TrainController(Node):
 
         self.robot.executing_nav = False
 
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         update_connection
+    # DESCRIPTION:  TODO
+    # PARAMETERS:   TODO
+    # RETURNS:      TODO
+    #
+    # ------------------------------------------------------------------------------------
     def update_connection(self, start: Station, end: Station, claimed: bool):
         msg = UpdateConnection()
         msg.start = start.name
@@ -116,7 +146,14 @@ class TrainController(Node):
         msg.claimed = claimed
         self.connection_claim_publisher.publish(msg)
 
-    # Assumes station is valid neighbor of current station
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         update_connection
+    # DESCRIPTION:  TODO Assumes station is valid neighbor of current station
+    # PARAMETERS:   TODO
+    # RETURNS:      TODO
+    #
+    # ------------------------------------------------------------------------------------
     def _move_to_neighboring_station(self, station: Station):
         self.get_logger().info(f"Moving to station: {station.name}")
         self.update_connection(self.current_position, station, True)
@@ -136,6 +173,14 @@ class TrainController(Node):
         self.current_position = station
         return True
 
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         route_train_callback
+    # DESCRIPTION:  TODO Assumes station is valid neighbor of current station
+    # PARAMETERS:   TODO
+    # RETURNS:      TODO
+    #
+    # ------------------------------------------------------------------------------------
     def route_train_callback(self, goal_handle):
         # TODO race condition resolution if two trains take the same path at the same time
         self.get_logger().info(f"Received goal: {goal_handle.request}")
@@ -150,10 +195,22 @@ class TrainController(Node):
         goal_handle.succeed()
         return RouteTrain.Result(success=True, arrived=True)
     
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         follow_service_timetable_callback
+    # DESCRIPTION:  Triggers movement of train by requesting routes from the
+    #               RailTrafficScheduler node.
+    # PARAMETERS:   goal_handle - contains no parameters.
+    # RETURNS:      Result object
+    #
+    # ------------------------------------------------------------------------------------
     async def follow_service_timetable_callback(self, goal_handle):
+        # Runs indefinitely until the train cannot find anymore services to execute.
         while True:
+            # Get current robot location.
             current_location = str(self.robot.location).replace('Room: ', "")
 
+            # Get next departure from RailTrafficScheduler node.
             next_service = self.create_client(
                 CRSDepartureLookup,
                 "RailTrafficScheduler/request_next_departure"
@@ -166,10 +223,12 @@ class TrainController(Node):
             future = next_service.call_async(req)
             response = await future
 
+            # Break the infinite loop if no further services are available from the train's current station.
             if response.api_status_code == "999":
                 self.get_logger().info("No further services to run from this station - train will remain.")
                 break
 
+            # Create service lookup client to retrieve list of intermediate stops.
             service_details = self.create_client(
                 APIRailServiceLookup,
                 "RailTrafficScheduler/request_service_details"
@@ -190,8 +249,11 @@ class TrainController(Node):
 
             self.get_logger().info(f"Service ID {req.service_uid} running with {self.get_name()}. Destination: {response.destination}.")
 
+            # Used to count failed routing attempts (where stations are missing from the Pyrobosim environment).
+            # This will count up to 3 before aborting the action.
             failed_routing_attempts = 0
 
+            # Move between stations.
             for stop in stops:
                 self.get_logger().info("Waiting 5 seconds before moving to next stop...")
                 time.sleep(5)

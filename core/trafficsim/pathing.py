@@ -4,7 +4,7 @@
 # ========================================================================================
 #
 # NAME:         pathing.py
-# DESCRIPTION:  TODO
+# DESCRIPTION:  Responsible for generating an A* Search Path for train routing.
 # AUTHORS:      CALVIN EARNSHAW, FAVOUR JAM, KACPER KOMNATA, REBEKAH LESLIE, ANDREAS MAITA
 #
 # ========================================================================================
@@ -31,11 +31,33 @@ import numpy as np
 SPEED = 10.0
 
 
+# ----------------------------------------------------------------------------------------
+#
+# NAME:         squared_euclidian_dist_between_stations()
+# DESCRIPTION:  Returns the Euclidean Distance between two stations.
+# PARAMETERS:   station1, station2
+# RETURNS:      float - a floating point representation of the Euclidean Distance.
+#
+# ----------------------------------------------------------------------------------------
+
+def squared_euclidian_dist_between_stations(station1, station2):
+    return ((station1.pose.x - station2.pose.x)**2 + (station1.pose.y - station2.pose.y)**2)
+
+
 # ========================================================================================
 #
 # CLASS DEFINITIONS
 #
 # ========================================================================================
+
+
+# ----------------------------------------------------------------------------------------
+#
+# NAME:         Station
+# DESCRIPTION:  A representation of a Station and its x,y pose within Pyrobosim.
+# PARAMETERS:   x, y, name
+#
+# ----------------------------------------------------------------------------------------
 
 class Station:
     def __init__(self, x: float, y: float, name: str):
@@ -45,14 +67,37 @@ class Station:
     def __repr__(self):
         return f"{self.name} ({self.pose})"
 
-def squared_euclidian_dist_between_stations(station1: Station, station2: Station):
-    return ((station1.pose.x - station2.pose.x)**2 + (station1.pose.y - station2.pose.y)**2)
+
+# ----------------------------------------------------------------------------------------
+#
+# NAME:         Connection
+# DESCRIPTION:  TODO
+# PARAMETERS:   none
+#
+# ----------------------------------------------------------------------------------------
 
 class Connection:
     def __init__(self):
         self.claimed = False
 
+
+# ----------------------------------------------------------------------------------------
+#
+# NAME:         StationGraph
+# DESCRIPTION:  A graph representation of a train station and its connection to other
+#               stations.
+# PARAMETERS:   - stations_with_coords: a dictionary of station-coordinate pairs,
+#               - connections: a dictionary of station-coordinate pairs.
+#
+# ----------------------------------------------------------------------------------------
+
 class StationGraph:
+
+    # ------------------------------------------------------------------------------------
+    #
+    # Class Constructor
+    #
+    # ------------------------------------------------------------------------------------
     def __init__(self, stations_with_coords: dict[str, tuple[str, str]], connections: dict[str, tuple[str, str]]):
         station_dict = {}
         station_graph = nx.MultiDiGraph()
@@ -70,16 +115,59 @@ class StationGraph:
         self.station_graph = station_graph
         self.station_dict = station_dict
 
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         get_path_between_nodes
+    # DESCRIPTION:  Returns the A* Path between a starting and ending node using NetworkX.
+    # PARAMETERS:   - start_node: a Station object containing name and x,y Pose.
+    #               - end_node: a Station object containing name and x,y Pose.
+    # RETURNS:      - list of Station objects
+    #
+    # ------------------------------------------------------------------------------------
     def get_path_between_nodes(self, start_node: Station, end_node: Station) -> list[Station]:
         return nx.astar_path(self.station_graph, start_node, end_node, squared_euclidian_dist_between_stations, weight='weight')
 
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         get_connection_between_nodes
+    # DESCRIPTION:  TODO
+    # PARAMETERS:   - start_node: a Station object containing name and x,y Pose.
+    #               - end_node: a Station object containing name and x,y Pose.
+    # RETURNS:      - a Connection object TODO
+    #
+    # ------------------------------------------------------------------------------------
     def get_connection_between_nodes(self, start_node: Station, end_node: Station) -> Connection:
         return self.station_graph[start_node][end_node][0]['object']
 
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         get_node
+    # DESCRIPTION:  Returns a node within the StationGraph class.
+    # PARAMETERS:   - name: a String containing the name of the node to be found.
+    # RETURNS:      - a Station node.
+    #
+    # ------------------------------------------------------------------------------------
     def get_node(self, name: str) -> Optional[Station]:
         return self.station_dict.get(name)
 
+
+# ----------------------------------------------------------------------------------------
+#
+# NAME:         PathFollower
+# DESCRIPTION:  TODO
+# PARAMETERS:   - start: a Pose object
+#               - end: a Pose object
+#               - speed_mult: a Float value determining the speed of the path execution
+#
+# ----------------------------------------------------------------------------------------
+
 class PathFollower:
+
+    # ------------------------------------------------------------------------------------
+    #
+    # Class Constructor
+    #
+    # ------------------------------------------------------------------------------------
     def __init__(self, start: Pose, end: Pose, speed_mult: float = 1.0):
         self.current_pos = start.get_translation()
 
@@ -89,6 +177,14 @@ class PathFollower:
         self.distance_traveled = 0.0
         self.speed_mult = speed_mult
 
+    # ------------------------------------------------------------------------------------
+    #
+    # NAME:         get_next_pose
+    # DESCRIPTION:  TODO
+    # PARAMETERS:   - dt - a Float object
+    # RETURNS:      - a Pose object
+    #
+    # ------------------------------------------------------------------------------------
     def get_next_pose(self, dt: float) -> Pose:
         dist_to_move = max(min(SPEED * self.speed_mult * dt, self.total_distance - self.distance_traveled), 0)
         self.distance_traveled += dist_to_move

@@ -1,0 +1,5 @@
+# No Goals
+---
+bool arrived
+---
+string[] visited

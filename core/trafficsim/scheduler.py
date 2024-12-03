@@ -22,7 +22,9 @@ import requests
 import pathlib
 import csv
 from pyrobosim_msgs.srv import RequestWorldState
-from trafficsim_interfaces.srv import CRSDepartureLookup
+from trafficsim_interfaces.srv import CRSDepartureLookup, APIRailServiceLookup, CRSAllDepartures
+
+from datetime import datetime
 
 
 # Authentication Details for https://api.rtt.io/ - for non-commercial use only.
@@ -53,11 +55,63 @@ class RailTrafficController(Node):
             'RailTrafficScheduler/request_next_departure',
             self.departures_callback
         )
+
+        self.rail_service_lookup_service = self.create_service(
+            APIRailServiceLookup,
+            "RailTrafficScheduler/request_service_details",
+            self.service_details_callback
+        )
+
+        self.all_departures_service = self.create_service(
+            CRSAllDepartures,
+            "RailTrafficScheduler/request_all_departures",
+            self.all_departures_callback
+        )
+
+        self._departure_index = 0
     
     def departures_callback(self, request, response):
         crs = STATIONS_CRS[request.origin]
 
-        api_response = requests.get(f"https://api.rtt.io/api/v1/json/search/{crs}", auth=RTT_API_AUTH)
+        api_response = requests.get(f"https://api.rtt.io/api/v1/json/search/{crs}/{datetime.today().strftime("%Y")}/{datetime.today().strftime("%m")}/{datetime.today().strftime("%d")}", auth=RTT_API_AUTH)
+
+        api_response_status = api_response.status_code
+
+        api_response = api_response.json()
+
+        if api_response_status == 200:
+            if self._departure_index == len(api_response["services"]) - 1 and request.lookup_only == False:
+                self.get_logger().warn(f"No more departures from {crs}.")
+                response.api_status_code = str(999)
+                return response
+            
+            response.api_status_code = str(api_response_status)
+
+            response.service_uid = str(api_response["services"][self._departure_index]["serviceUid"])
+            response.destination = str(api_response["services"][self._departure_index]["locationDetail"]["destination"][0]["description"])
+            response.origin_start_time = str(api_response["services"][self._departure_index]["locationDetail"]["origin"][0]["publicTime"])
+            response.destination_arrival_time = str(api_response["services"][self._departure_index]["locationDetail"]["destination"][0]["publicTime"])
+            response.headcode = str(api_response["services"][self._departure_index]["trainIdentity"])
+            response.atoc_name = str(api_response["services"][self._departure_index]["atocName"])
+
+            if request.lookup_only == False:
+                self._departure_index += 1
+
+            self.get_logger().info(f"Retrieved departure information for {crs}")
+
+            return response
+        else:
+            response.api_status_code = str(api_response_status)
+            self.get_logger().error(f"Cannot retrieve departure information for {crs} - RTT API returned error code {str(api_response_status)}")
+            return response
+    
+    def all_departures_callback(self, request, response):
+        crs = STATIONS_CRS[request.origin]
+        year = str(request.year)
+        month = str(request.month)
+        date = str(request.date)
+
+        api_response = requests.get(f"https://api.rtt.io/api/v1/json/search/{crs}/{year}/{month}/{date}", auth=RTT_API_AUTH)
 
         api_response_status = api_response.status_code
 
@@ -66,13 +120,40 @@ class RailTrafficController(Node):
         if api_response_status == 200:
             response.api_status_code = str(api_response_status)
 
-            response.destination = str(api_response["services"][0]["locationDetail"]["destination"][0]["description"])
-            response.origin_start_time = str(api_response["services"][0]["locationDetail"]["origin"][0]["publicTime"])
-            response.destination_arrival_time = str(api_response["services"][0]["locationDetail"]["destination"][0]["publicTime"])
-            response.headcode = str(api_response["services"][0]["trainIdentity"])
-            response.atoc_name = str(api_response["services"][0]["atocName"])
+            service_list = [service["serviceUid"] for service in api_response["services"] if service["locationDetail"]["displayAs"] == "ORIGIN" and service["serviceType"] == "train"]
 
-            self.get_logger().info(f"Retrieved departure information for {crs}")
+            response.service_uid_list = service_list
+
+            return response
+        else:
+            response.api_status_code = str(api_response_status)
+            self.get_logger().error(f"Cannot retrieve departure information for {crs} - RTT API returned error code {str(api_response_status)}")
+            return response
+    
+    def service_details_callback(self, request, response):
+        service_uid = str(request.service_uid)
+        year = str(request.year)
+        month = str(request.month)
+        date = str(request.date)
+
+        api_response = requests.get(f"https://api.rtt.io/api/v1/json/service/{service_uid}/{year}/{month}/{date}", auth=RTT_API_AUTH)
+
+        api_response_status = api_response.status_code
+
+        api_response = api_response.json()
+
+        if api_response_status == 200:
+            response.api_status_code = str(api_response_status)
+
+            response.origin = str(api_response["origin"][0]["description"])
+            response.destination = str(api_response["destination"][0]["description"])
+
+            stops = []
+
+            for station_call in api_response["locations"][1:]:
+                stops.append(str(station_call["description"]))
+            
+            response.stops = stops
 
             return response
         else:

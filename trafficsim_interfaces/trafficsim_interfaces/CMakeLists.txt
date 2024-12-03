@@ -16,9 +16,12 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/TestSrvInterface.srv"
+  "srv/APIRailServiceLookup.srv"
   "srv/CRSDepartureLookup.srv"
+  "srv/CRSAllDepartures.srv"
   "msg/UpdateConnection.msg"
   "action/RouteTrain.action"
+  "action/ServiceRoute.action"
   DEPENDENCIES geometry_msgs
 )
 

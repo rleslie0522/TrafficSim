@@ -1,0 +1,9 @@
+string service_uid
+string year
+string month
+string date
+---
+string api_status_code
+string origin
+string destination
+string[] stops

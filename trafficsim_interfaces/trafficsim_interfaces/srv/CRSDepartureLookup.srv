@@ -1,6 +1,8 @@
 string origin
+bool lookup_only True
 ---
 string api_status_code
+string service_uid
 string destination
 string origin_start_time
 string destination_arrival_time

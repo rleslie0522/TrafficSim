@@ -1,0 +1,7 @@
+string origin
+string year
+string month
+string date
+---
+string api_status_code
+string[] service_uid_list

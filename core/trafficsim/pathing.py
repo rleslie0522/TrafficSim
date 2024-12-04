@@ -130,10 +130,11 @@ class StationGraph:
     # ------------------------------------------------------------------------------------
     #
     # NAME:         get_connection_between_nodes
-    # DESCRIPTION:  TODO
+    # DESCRIPTION:  Returns a Connection object describing the connection between two nodes
+    #               in station graph.
     # PARAMETERS:   - start_node: a Station object containing name and x,y Pose.
     #               - end_node: a Station object containing name and x,y Pose.
-    # RETURNS:      - a Connection object TODO
+    # RETURNS:      - Connection
     #
     # ------------------------------------------------------------------------------------
     def get_connection_between_nodes(self, start_node: Station, end_node: Station) -> Connection:

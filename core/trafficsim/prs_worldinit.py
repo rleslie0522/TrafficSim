@@ -67,7 +67,8 @@ with open(station_dataset_path.joinpath('Trains.json'), 'r') as f:
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:32630", always_xy=True)
 
 # Define scaling factor used to draw station coordinates in PyRoboSim environment.
-scaling_factor = 0.004
+# scaling_factor = 0.004
+scaling_factor = 0.1
 
 # Create 2D plane station coordinates for PyRoboSim.
 station_coordinates = {
@@ -151,7 +152,7 @@ def create_world(executor: Executor):
     )
 
     # Iterate through stations given above and add to pyrobosim environment.
-    room_size = 5
+    room_size = 20
     for name, (x, y) in station_coordinates.items():
         footprint = [
             (x - room_size / 2, y - room_size / 2), #bottom left

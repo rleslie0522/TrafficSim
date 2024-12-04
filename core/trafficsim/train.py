@@ -205,17 +205,19 @@ class TrainController(Node):
     #
     # ------------------------------------------------------------------------------------
     async def follow_service_timetable_callback(self, goal_handle):
-        # Runs indefinitely until the train cannot find anymore services to execute.
+        # Runs indefinitely until the train cannot find anymore services to run.
         while True:
             # Get current robot location.
             current_location = str(self.robot.location).replace('Room: ', "")
+            origin = str(current_location)
 
-            # Get next departure from RailTrafficScheduler node.
+            # Create client for RailTrafficScheduler Next Departure Service.
             next_service = self.create_client(
                 CRSDepartureLookup,
                 "RailTrafficScheduler/request_next_departure"
             )
 
+            # Request next departure from current location of robot.
             req = CRSDepartureLookup.Request()
             req.origin = str(current_location)
             req.lookup_only = False
@@ -223,7 +225,8 @@ class TrainController(Node):
             future = next_service.call_async(req)
             response = await future
 
-            # Break the infinite loop if no further services are available from the train's current station.
+            # If no further services are available from the current station (indicated by status 999),
+            # exit the loop and complete the action.
             if response.api_status_code == "999":
                 self.get_logger().info("No further services to run from this station - train will remain.")
                 break
@@ -234,8 +237,10 @@ class TrainController(Node):
                 "RailTrafficScheduler/request_service_details"
             )
 
+            # Collect the unique Service ID from service details.
             service_uid = str(response.service_uid)
 
+            # Request service information, given service unique ID and current date.
             req = APIRailServiceLookup.Request()
             req.year = datetime.today().strftime('%Y')
             req.month = datetime.today().strftime('%m')
@@ -247,32 +252,56 @@ class TrainController(Node):
 
             stops = response.stops
 
-            self.get_logger().info(f"Service ID {req.service_uid} running with {self.get_name()}. Destination: {response.destination}.")
+            # Output service details to console.
+            self.get_logger().info(f"Service ID {req.service_uid} running with {self.get_name()}. Destination: {response.destination}. Calling at: {response.stops}")
 
-            # Used to count failed routing attempts (where stations are missing from the Pyrobosim environment).
-            # This will count up to 3 before aborting the action.
-            failed_routing_attempts = 0
+            # Define a flag
+            failed_route = False
 
-            # Move between stations.
+            # Iterate through each intermediate stop in the stops list, and navigate train.
             for stop in stops:
+                # Simulate embarking/disembarking.
                 self.get_logger().info("Waiting 5 seconds before moving to next stop...")
                 time.sleep(5)
+
+                # Used to count failed routing attempts (where stations are missing from the Pyrobosim environment).
+                # This will count up to 3 stops ahead before aborting the action.
+                failed_routing_attempts = 0
+
+                # Look for station name in current Station_Graph.
                 stop_node_name = stop.replace(" ", "_")
                 stop_node = self.station_graph.get_node(stop_node_name)
+
+                # If the stop_node doesn't exist, we record this as a 'failed routing attempt'. We attempt to
+                # route up to a maximum of the next three stations ahead before assuming the proposed service route
+                # does not exist. In which case, we terminate the service, setting the failed_route flag to TRUE.
                 if stop_node is None:
                     failed_routing_attempts += 1
-                    if failed_routing_attempts == 3:
-                        self.get_logger().warn(f"Failed to complete routing to {response.destination} - more than three stops on the route do not exist. Aborting...")
-                        # Logic here to move train back to destination?
-                    # Attempt to route to next stop in service line.
+                    if failed_routing_attempts > 3:
+                        self.get_logger().warn(f"Failed to complete routing to {response.destination} - more than three consecutive stops on this service do not exist. Aborting...")
+                        failed_route = True
+                        break
                     continue
+
+                # Plan path between robot current location and next stop.
+                path = self.station_graph.get_path_between_nodes(self.current_position, stop_node)
+
+                # Execute path.
+                self._follow_path_to_destination(path)
+                self.get_logger().info(f"Train arrived at: {stop}. Destination: {response.destination}. Remaining stops: {stops[stops.index(stop):]}")
+            
+            # If the route failed, then we redirect the train back to the originating station to start a new service.
+            if failed_route:
+                self.get_logger().warn(f"Train redirecting to origin: {str(origin)}...")
+                stop_node_name = str(origin).replace(" ", "_")
+                stop_node = self.station_graph.get_node(stop_node_name)
                 path = self.station_graph.get_path_between_nodes(self.current_position, stop_node)
                 self._follow_path_to_destination(path)
-                self.get_logger().info(f"Train arrived at: {stop}. Destination: {response.destination}.")
+                self.get_logger().info(f"Train arrived at: {str(origin)} awaiting new service.")
             
             self.get_logger().info(f"Train has terminated at {response.destination}. Waiting 10 seconds then attempting to find a new route...")
+            time.sleep(10)
 
-        
+        # Action is considered succeessful if there are no further services from the current station to run.
         goal_handle.succeed()
-
         return ServiceRoute.Result(success=True)

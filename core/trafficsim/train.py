@@ -24,7 +24,7 @@ from rclpy.node import Node
 
 # Import Message, Server, and Action Interfaces
 from rclpy.action import ActionServer
-from trafficsim_interfaces.action import RouteTrain, ServiceRoute
+from trafficsim_interfaces.action import RouteTrain, ServiceRoute, MoveFreight
 from trafficsim_interfaces.srv import CRSDepartureLookup, CRSAllDepartures, APIRailServiceLookup
 from trafficsim_interfaces.msg import UpdateConnection
 from trafficsim.pathing import StationGraph, Station, PathFollower
@@ -81,6 +81,13 @@ class TrainController(Node):
             self.follow_service_timetable_callback
         )
 
+        self.move_freight_action = ActionServer(
+            self,
+            MoveFreight,
+            f"{self.get_name()}/move_freight",
+            self.move_freight_callback
+        )
+
         # Initialise pathfinder using custom path planner.
         self.station_graph = station_graph
         match station_graph.get_node(current_station_name):
@@ -92,6 +99,47 @@ class TrainController(Node):
         self.connection_claim_publisher = self.create_publisher(UpdateConnection, "connection_claim", 10)
         self.connection_claim_subscriber = self.create_subscription(UpdateConnection, "connection_claim", self.connection_claim_callback, 10)
         self.speed_mult = speed_mult
+
+    def move_freight_callback(self, goal_handle) -> MoveFreight.Result:
+        result = self.move_freight(goal_handle.request)
+        if result.arrived:
+            goal_handle.succeed()
+        else:
+            goal_handle.abort()
+        return result
+
+    def move_freight(self, goal: MoveFreight.Goal) -> MoveFreight.Result:
+        route_train_goal = RouteTrain.Goal()
+        route_train_goal.destination = goal.location
+        result = self.route_train(route_train_goal)
+        if not result.arrived:
+            self.get_logger().error("Failed to move freight")
+            return MoveFreight.Result(success=False, arrived=False)
+        self.pickup_freight(goal.id)
+
+        drop_off_goal = RouteTrain.Goal()
+        drop_off_goal.destination = goal.destination
+        result = self.route_train(drop_off_goal)
+        if not result.arrived:
+            self.get_logger().error("Failed to drop off freight")
+            return MoveFreight.Result(success=False, arrived=False)
+        self.drop_freight()
+        return MoveFreight.Result(success=True, arrived=True)
+
+    def pickup_freight(self, freight_id: int):
+        self.get_logger().info(f"Picking up freight {freight_id}")
+        freight = self.robot.world.get_object_by_name(str(freight_id))
+        self.robot._attach_object(freight)
+        pass
+
+    def drop_freight(self):
+        old_location = self.robot.location
+        self.robot.location = self.robot.world.get_entity_by_name(f"{self.current_position.name}_loc_tabletop")
+        self.get_logger().info(f"Dropping off freight at  {self.robot.location.name}")
+        self.robot.place_object()
+        self.robot.location = old_location
+        # TODO
+        pass
 
     # ------------------------------------------------------------------------------------
     #
@@ -185,19 +233,20 @@ class TrainController(Node):
     # RETURNS:      a RouteTrain action result object
     #
     # ------------------------------------------------------------------------------------
-    def route_train_callback(self, goal_handle):
+    def route_train_callback(self, goal_handle) -> RouteTrain.Result:
         # TODO race condition resolution if two trains take the same path at the exact same time
         # this is complex to solve and may not be necessary for the scope of the project
-        self.get_logger().info(f"Received goal: {goal_handle.request}")
-        dest_name = goal_handle.request.destination
+        return self.route_train(goal_handle.request)
+
+    def route_train(self, goal: RouteTrain.Goal):
+        self.get_logger().info(f"Received goal: {goal.destination}")
+        dest_name = goal.destination
         dest_node = self.station_graph.get_node(dest_name)
         if dest_node is None:
-            goal_handle.abort()
             return RouteTrain.Result(success=False)
 
         path = self.station_graph.get_path_between_nodes(self.current_position, dest_node)
         self._follow_path_to_destination(path)
-        goal_handle.succeed()
         return RouteTrain.Result(success=True, arrived=True)
 
     # ------------------------------------------------------------------------------------

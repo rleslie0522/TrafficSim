@@ -20,6 +20,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/CRSDepartureLookup.srv"
   "srv/CRSAllDepartures.srv"
   "msg/UpdateConnection.msg"
+  "action/MoveFreight.action"
   "action/RouteTrain.action"
   "action/ServiceRoute.action"
   DEPENDENCIES geometry_msgs

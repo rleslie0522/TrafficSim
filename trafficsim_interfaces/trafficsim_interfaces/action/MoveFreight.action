@@ -1,0 +1,9 @@
+# Request
+uint32 id
+string location
+string destination
+---
+# Result
+bool arrived
+---
+# Feedback

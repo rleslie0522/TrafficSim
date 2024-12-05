@@ -161,6 +161,7 @@ def create_world(executor: Executor):
             (x + room_size / 2, y - room_size / 2)  #bottom right
         ]
         world.add_room(name=name, footprint=footprint, color=[0, 0, 0])
+        world.add_location(name=f"{name}_loc", category="table", parent=name, pose=Pose(x, y))
 
     # Add rail lines connecting stations.
     for name, (start, end) in lines.items():
@@ -178,8 +179,12 @@ def create_world(executor: Executor):
             executor=executor,
             speed_mult=train_types[train["class"]]["linear_velocity"],
         )
-        world.add_robot(robot, loc=train["starting_station"])
-
+        train_id += 1
+        world.add_robot(robot, loc=f"{train["starting_station"]}")
+        # workaround for the robot not being placed in the correct location
+        starter_location = world.get_entity_by_name(f"{train["starting_station"]}_loc_tabletop")
+        robot.location = starter_location
+        robot.set_pose(starter_location.pose)
     return world
 
 

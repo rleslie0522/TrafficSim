@@ -204,11 +204,11 @@ def create_ros_node(executor: Executor):
 # ----------------------------------------------------------------------------------------
 #
 # NAME:         threaded_startup()
-# DESCRIPTION:  TODO ADD DESCRIPTION.
-# PARAMETERS:   TODO
+# DESCRIPTION:  Meant to be called in a separate thread, sets up the wordl node with the
+#               executor and starts the ROS node.
+# PARAMETERS:   executor - an Executor used to run the ROS node
+#               world_node - WorldROSWrapper instance to be run
 # RETURNS:      none
-#
-# REFERENCES:   TODO
 #
 # ----------------------------------------------------------------------------------------
 

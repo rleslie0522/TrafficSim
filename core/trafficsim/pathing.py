@@ -71,7 +71,7 @@ class Station:
 # ----------------------------------------------------------------------------------------
 #
 # NAME:         Connection
-# DESCRIPTION:  TODO
+# DESCRIPTION:  A representation of a one way connection between two stations (and edge in the A* graph).
 # PARAMETERS:   none
 #
 # ----------------------------------------------------------------------------------------
@@ -155,7 +155,9 @@ class StationGraph:
 # ----------------------------------------------------------------------------------------
 #
 # NAME:         PathFollower
-# DESCRIPTION:  TODO
+# DESCRIPTION:  A class meant to be used similarly to an iterator while a train is travelling
+#               between two points, returning the next position along a path that a train should
+#               be in
 # PARAMETERS:   - start: a Pose object
 #               - end: a Pose object
 #               - speed_mult: a Float value determining the speed of the path execution
@@ -181,7 +183,7 @@ class PathFollower:
     # ------------------------------------------------------------------------------------
     #
     # NAME:         get_next_pose
-    # DESCRIPTION:  TODO
+    # DESCRIPTION:  Returns the next Pose object along a path after a given time interval.
     # PARAMETERS:   - dt - a Float object
     # RETURNS:      - a Pose object
     #

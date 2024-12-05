@@ -45,8 +45,6 @@ from datetime import datetime
 # DESCRIPTION:  A node to handle train movement via set points (rooms) in the environment.
 # PARAMETERS:   none
 #
-# REFERENCES:   - TODO
-#
 # ----------------------------------------------------------------------------------------
 
 MOVE_SPEED = 0.1
@@ -90,7 +88,7 @@ class TrainController(Node):
                 raise ValueError(f"Station {current_station_name} not found in station graph")
             case current_position:
                 self.current_position = current_position
-        
+
         self.connection_claim_publisher = self.create_publisher(UpdateConnection, "connection_claim", 10)
         self.connection_claim_subscriber = self.create_subscription(UpdateConnection, "connection_claim", self.connection_claim_callback, 10)
         self.speed_mult = speed_mult
@@ -98,9 +96,10 @@ class TrainController(Node):
     # ------------------------------------------------------------------------------------
     #
     # NAME:         connection_claim_callback
-    # DESCRIPTION:  TODO
-    # PARAMETERS:   TODO
-    # RETURNS:      TODO
+    # DESCRIPTION:  Callback that is executed when a connection claim update message is sent,
+    #               updating the connection claim status in the local station graph.
+    # PARAMETERS:   msg - an UpdateConnection message
+    # RETURNS:      none
     #
     # ------------------------------------------------------------------------------------
     def connection_claim_callback(self, msg: UpdateConnection):
@@ -114,9 +113,9 @@ class TrainController(Node):
     # ------------------------------------------------------------------------------------
     #
     # NAME:         _follow_path_to_destination
-    # DESCRIPTION:  TODO
-    # PARAMETERS:   TODO
-    # RETURNS:      TODO
+    # DESCRIPTION:  An higher level internal method to move the train along a path to a given destination.
+    # PARAMETERS:   path - a list of Station objects
+    # RETURNS:      none
     #
     # ------------------------------------------------------------------------------------
     def _follow_path_to_destination(self, path: list[Station]):
@@ -134,9 +133,12 @@ class TrainController(Node):
     # ------------------------------------------------------------------------------------
     #
     # NAME:         update_connection
-    # DESCRIPTION:  TODO
-    # PARAMETERS:   TODO
-    # RETURNS:      TODO
+    # DESCRIPTION:  A function to publish an UpdateConnection message to the connection_claim,
+    #               topic, updating the connection claim status in local station graphs for all trains.
+    # PARAMETERS:   start - a Station object idenfitying the start of the connection
+    #               end - a Station object identifying the end of the connection
+    #               claimed - a boolean value indicating whether the connection is claimed
+    # RETURNS:      none
     #
     # ------------------------------------------------------------------------------------
     def update_connection(self, start: Station, end: Station, claimed: bool):
@@ -148,10 +150,11 @@ class TrainController(Node):
 
     # ------------------------------------------------------------------------------------
     #
-    # NAME:         update_connection
-    # DESCRIPTION:  TODO Assumes station is valid neighbor of current station
-    # PARAMETERS:   TODO
-    # RETURNS:      TODO
+    # NAME:         _move_to_neighboring_station
+    # DESCRIPTION:  Low level function moving the train to a neighboring station,
+    #               assumes station is valid neighbor of current station
+    # PARAMETERS:   station - a Station object to move to
+    # RETURNS:      none
     #
     # ------------------------------------------------------------------------------------
     def _move_to_neighboring_station(self, station: Station):
@@ -176,13 +179,15 @@ class TrainController(Node):
     # ------------------------------------------------------------------------------------
     #
     # NAME:         route_train_callback
-    # DESCRIPTION:  TODO Assumes station is valid neighbor of current station
-    # PARAMETERS:   TODO
-    # RETURNS:      TODO
+    # DESCRIPTION:  Function called when a /route_train action is received, moving the train
+    #               to a given destination.
+    # PARAMETERS:   goal_handle - a RouteTrain action goal handle passed by an action client.
+    # RETURNS:      a RouteTrain action result object
     #
     # ------------------------------------------------------------------------------------
     def route_train_callback(self, goal_handle):
-        # TODO race condition resolution if two trains take the same path at the same time
+        # TODO race condition resolution if two trains take the same path at the exact same time
+        # this is complex to solve and may not be necessary for the scope of the project
         self.get_logger().info(f"Received goal: {goal_handle.request}")
         dest_name = goal_handle.request.destination
         dest_node = self.station_graph.get_node(dest_name)
@@ -194,7 +199,7 @@ class TrainController(Node):
         self._follow_path_to_destination(path)
         goal_handle.succeed()
         return RouteTrain.Result(success=True, arrived=True)
-    
+
     # ------------------------------------------------------------------------------------
     #
     # NAME:         follow_service_timetable_callback
@@ -289,7 +294,7 @@ class TrainController(Node):
                 # Execute path.
                 self._follow_path_to_destination(path)
                 self.get_logger().info(f"Train arrived at: {stop}. Destination: {response.destination}. Remaining stops: {stops[stops.index(stop):]}")
-            
+
             # If the route failed, then we redirect the train back to the originating station to start a new service.
             if failed_route:
                 self.get_logger().warn(f"Train redirecting to origin: {str(origin)}...")
@@ -298,7 +303,7 @@ class TrainController(Node):
                 path = self.station_graph.get_path_between_nodes(self.current_position, stop_node)
                 self._follow_path_to_destination(path)
                 self.get_logger().info(f"Train arrived at: {str(origin)} awaiting new service.")
-            
+
             self.get_logger().info(f"Train has terminated at {response.destination}. Waiting 10 seconds then attempting to find a new route...")
             time.sleep(10)
 

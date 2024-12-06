@@ -18,19 +18,23 @@
 
 # Import Python Common Classes
 import time
+import asyncio
 
 # Import ROS2 Common Library Classes
 from rclpy.node import Node
+from rclpy.callback_groups import ReentrantCallbackGroup
 
 # Import Message, Server, and Action Interfaces
 from rclpy.action import ActionServer
+from trafficsim.freight import LocalFreightManager
 from trafficsim_interfaces.action import RouteTrain, ServiceRoute, MoveFreight
 from trafficsim_interfaces.srv import CRSDepartureLookup, CRSAllDepartures, APIRailServiceLookup
-from trafficsim_interfaces.msg import UpdateConnection
+from trafficsim_interfaces.msg import UpdateConnection, SpawnFreight, ClaimFreight, DeliverFreight
 from trafficsim.pathing import StationGraph, Station, PathFollower
 from pyrobosim.core.robot import Robot
 
 from datetime import datetime
+
 
 # ========================================================================================
 #
@@ -56,11 +60,15 @@ class TrainController(Node):
     # Class Constructor
     #
     # ------------------------------------------------------------------------------------
-    def __init__(self, name: str, robot: Robot, station_graph: StationGraph, current_station_name: str, speed_mult: float):
+    def __init__(self, name: str, id: int, robot: Robot, station_graph: StationGraph, current_station_name: str, speed_mult: float):
         super().__init__(name)
 
         # Link instance of Robot class to Train object.
         self.robot = robot
+
+        self.id = id
+
+        main_callback_group = ReentrantCallbackGroup()
 
         # Battery consumption.
         self.battery_usage = 0.01
@@ -70,7 +78,8 @@ class TrainController(Node):
             self,
             RouteTrain,
             f"{self.get_name()}/route_train",
-            self.route_train_callback
+            self.route_train_callback,
+            callback_group=main_callback_group
         )
 
         # Create /follow_service_timetable server - used to trigger automated movement based on timetable.
@@ -78,27 +87,103 @@ class TrainController(Node):
             self,
             ServiceRoute,
             f"{self.get_name()}/follow_service_timetable",
-            self.follow_service_timetable_callback
+            self.follow_service_timetable_callback,
+            callback_group=main_callback_group
         )
 
         self.move_freight_action = ActionServer(
             self,
             MoveFreight,
             f"{self.get_name()}/move_freight",
-            self.move_freight_callback
+            self.move_freight_callback,
+            callback_group=main_callback_group
         )
 
         # Initialise pathfinder using custom path planner.
         self.station_graph = station_graph
+        self.local_freight_manager = LocalFreightManager(self.id)
         match station_graph.get_node(current_station_name):
             case None:
                 raise ValueError(f"Station {current_station_name} not found in station graph")
             case current_position:
                 self.current_position = current_position
 
-        self.connection_claim_publisher = self.create_publisher(UpdateConnection, "connection_claim", 10)
-        self.connection_claim_subscriber = self.create_subscription(UpdateConnection, "connection_claim", self.connection_claim_callback, 10)
+        self.connection_claim_publisher = self.create_publisher(UpdateConnection, "connection_claim", 10, callback_group=main_callback_group)
+        self.connection_claim_subscriber = self.create_subscription(UpdateConnection, "connection_claim", self.connection_claim_callback, 10, callback_group=main_callback_group)
         self.speed_mult = speed_mult
+
+        self.freight_spawn_subscriber = self.create_subscription(SpawnFreight, "freight_spawn", self.freight_spawn_callback, 10, callback_group=main_callback_group)
+
+        self.freight_claim_publisher = self.create_publisher(ClaimFreight, "claim_freight", 10, callback_group=main_callback_group)
+        self.freight_claim_subscriber = self.create_subscription(ClaimFreight, "claim_freight", self.freight_claim_callback, 10, callback_group=main_callback_group)
+
+        self.freight_deliver_publisher = self.create_publisher(DeliverFreight, "freight_delivered", 10, callback_group=main_callback_group)
+
+        self.timed_freight_claim_confirmation = self.create_timer(1.1, self.check_internal_claim, autostart=False)
+        self.update_loop = self.create_timer(0.1, self.update)
+
+    def is_busy(self):
+        return self.robot.executing_nav or self.local_freight_manager.attempted_claim is not None or self.local_freight_manager.claimed is not None
+
+    def update(self):
+        if self.is_busy():
+            return
+        self.try_claim_best_request()
+
+    def freight_spawn_callback(self, msg: SpawnFreight):
+        self.local_freight_manager.add_request(msg)
+        if not self.is_busy():
+            self.try_claim_request(msg)
+        pass
+
+    def try_claim_best_request(self):
+        best_request = self.local_freight_manager.get_best_request_for_train(self.station_graph, self.current_position)
+        if best_request is None:
+            return
+        self.try_claim_request(best_request)
+
+    def try_claim_request(self, request: SpawnFreight):
+        dest = self.station_graph.get_node(request.location)
+        if dest is None:
+            self.get_logger().error(f"Invalid freight spawn request: {request}")
+            return
+        self.local_freight_manager.try_claim_request(request.id)
+        msg = ClaimFreight()
+        msg.id = request.id
+        msg.final = False
+        msg.train_id = self.id
+        msg.distance = float(self.station_graph.get_dist_between_nodes(self.current_position, dest))
+        self.get_logger().info(f"Attempting to claim freight {request.id} at {request.location} with distance {msg.distance}")
+        self.freight_claim_publisher.publish(msg)
+        self.timed_freight_claim_confirmation.reset()
+
+    def check_internal_claim(self):
+        if self.local_freight_manager.attempted_claim is None:
+            return
+        best_train_id = self.local_freight_manager.get_best_train_for_request(self.local_freight_manager.attempted_claim)
+        if best_train_id == self.id:
+            request = self.local_freight_manager.get_request(self.local_freight_manager.attempted_claim)
+            if request is None:
+                return
+            self.get_logger().info(f"Publishing final claim for freight {request.id} at {request.location}")
+            self.freight_claim_publisher.publish(ClaimFreight(id=request.id, train_id=self.id, final=True))
+
+    def freight_claim_callback(self, msg: ClaimFreight):
+        if msg.train_id == self.id:
+            if msg.final == True:
+                self.confirm_internal_freight_claim()
+        if msg.final == True:
+            self.local_freight_manager.confirm_external_claim(msg.id)
+        self.local_freight_manager.add_external_claim(msg)
+        pass
+
+    def confirm_internal_freight_claim(self):
+        request = self.local_freight_manager.confirm_internal_claim()
+        if request is None:
+            self.get_logger().error("Internal claim confirmation failed")
+            return
+        self.get_logger().info(f"Claimed freight {request.id} at {request.location}")
+        self.move_freight(MoveFreight.Goal(id=request.id, location=request.location, destination=request.destination))
 
     def move_freight_callback(self, goal_handle) -> MoveFreight.Result:
         result = self.move_freight(goal_handle.request)
@@ -138,8 +223,10 @@ class TrainController(Node):
         self.get_logger().info(f"Dropping off freight at  {self.robot.location.name}")
         self.robot.place_object()
         self.robot.location = old_location
-        # TODO
+        self.freight_deliver_publisher.publish(DeliverFreight(id=self.local_freight_manager.claimed, destination=self.current_position.name))
+        self.local_freight_manager.claimed = None
         pass
+
 
     # ------------------------------------------------------------------------------------
     #
@@ -205,6 +292,8 @@ class TrainController(Node):
     # RETURNS:      none
     #
     # ------------------------------------------------------------------------------------
+    # def move_robot(self, prev_time: float, )
+
     def _move_to_neighboring_station(self, station: Station):
         self.get_logger().info(f"Moving to station: {station.name}")
         self.update_connection(self.current_position, station, True)

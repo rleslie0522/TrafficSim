@@ -42,3 +42,14 @@ There are two folders within this repository - each contain a separate package:
 ## Execution
 ### Demo Path Planner
 1. type `ros2 action send_goal /execute_train_route trafficsim_interfaces/action/ExecuteTrainRoute "{train_id: 'Scotrail_170401', destination: 'Edinburgh_Waverley', stops: ['Leuchars', 'Kirkcaldy', 'Inverkeithing', 'Haymarket']}"`
+
+### Freight Spawner
+To begin spawning freight:
+```bash
+ros2 topic pub /toggle_freight_spawning trafficsim_interfaces/msg/ToggleFreightSpawning '{enabled: true}'
+```
+
+To stop spawning freight:
+```bash
+ros2 topic pub /toggle_freight_spawning trafficsim_interfaces/msg/ToggleFreightSpawning '{enabled: false}'
+```

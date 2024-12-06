@@ -23,9 +23,11 @@ import threading
 import pathlib
 import json
 import copy
+import asyncio
 
 # Import ROS2 Common Library Classes
 import rclpy
+import rclpy.node
 
 # Import PyProj Transformer - used to perform geometric transformations for station coordinates.
 from pyproj import Transformer
@@ -38,6 +40,7 @@ from pyrobosim.utils.pose import Pose
 from pyrobosim_ros.ros_interface import WorldROSWrapper
 
 from rclpy.executors import MultiThreadedExecutor, Executor
+from trafficsim.freight import GlobalFreightManager
 from trafficsim.train_robot import TrainRobot
 from trafficsim.pathing import StationGraph
 
@@ -167,10 +170,12 @@ def create_world(executor: Executor):
     for name, (start, end) in lines.items():
         world.add_hallway(room_start=start, room_end=end, name=name, width=1.25, color=[0.2, 0.2, 0.2])
 
+    train_id = 0
     # Add trains to network.
     for train in trains:
         robot = TrainRobot(
             name=f"{train["operator"]}_{train["class"]}{train["id"]}",
+            id = train_id,
             radius=0.5,
             color=train_types[train["class"]]["colour"],
             pose=Pose(0, 0, 0, 0, 0, 0),
@@ -185,6 +190,9 @@ def create_world(executor: Executor):
         starter_location = world.get_entity_by_name(f"{train["starting_station"]}_loc_tabletop")
         robot.location = starter_location
         robot.set_pose(starter_location.pose)
+
+    freight_manager = GlobalFreightManager(20, station_graph, world)
+    executor.add_node(freight_manager)
     return world
 
 

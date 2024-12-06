@@ -7,6 +7,18 @@
             "starting_station": "Aberdeen"
         },
         {
+            "class": "170",
+            "id": "402",
+            "operator": "Scotrail",
+            "starting_station": "Aberdeen"
+        },
+        {
+            "class": "170",
+            "id": "403",
+            "operator": "Scotrail",
+            "starting_station": "Aberdeen"
+        },
+        {
             "class": "801",
             "id": "100",
             "operator": "LNER",

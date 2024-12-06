@@ -151,6 +151,13 @@ class StationGraph:
     def get_node(self, name: str) -> Optional[Station]:
         return self.station_dict.get(name)
 
+    def get_random_node(self) -> Station:
+        # conceptually I don't like this (allocating a list seems like overkill)
+        # but it's the easiest way to get a random node
+        return np.random.choice(list(self.station_dict.values()))
+
+    def get_dist_between_nodes(self, start_node: Station, end_node: Station) -> float:
+        return nx.astar_path_length(self.station_graph, start_node, end_node, squared_euclidian_dist_between_stations, weight='weight')
 
 # ----------------------------------------------------------------------------------------
 #

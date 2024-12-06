@@ -89,25 +89,25 @@ train_types = {
         "operator": "Scotrail",
         "colour": "#1e467d",
         "battery_usage": 0.01,
-        "linear_velocity": 7.5
+        "linear_velocity": 10
     },
     "158": {
         "operator": "Scotrail",
         "colour": "#1e467d",
         "battery_usage": 0.02,
-        "linear_velocity": 5.0
+        "linear_velocity": 10
     },
     "170": {
         "operator": "Scotrail",
         "colour": "#1e467d",
         "battery_usage": 0.01,
-        "linear_velocity": 6.0
+        "linear_velocity": 10
     },
     "801": {
         "operator": "LNER",
         "colour": "#ce0e2d",
         "battery_usage": 0.005,
-        "linear_velocity": 7.5
+        "linear_velocity": 10
     }
 }
 

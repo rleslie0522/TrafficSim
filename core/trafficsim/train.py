@@ -306,7 +306,8 @@ class TrainController(Node):
             time.sleep(0.1)
             curr_time = time.time()
             self.robot.set_pose(path_follower.get_next_pose(curr_time - prev_time))
-            self.robot.battery_level -= self.battery_usage
+            if self.robot.battery_level > 0:
+                self.robot.battery_level -= self.battery_usage
             prev_time = curr_time
 
         self.update_connection(self.current_position, station, False)
@@ -399,12 +400,16 @@ class TrainController(Node):
 
             # Define a flag
             failed_route = False
-
             # Iterate through each intermediate stop in the stops list, and navigate train.
             for stop in stops:
                 # Simulate embarking/disembarking.
                 self.get_logger().info("Waiting 5 seconds before moving to next stop...")
-                time.sleep(5)
+                if self.robot.battery_level <= 5:
+                    # chargin battery takes 7 seconds
+                    time.sleep(7)
+                    self.robot.battery_level = 100
+                else:
+                    time.sleep(5)
 
                 # Used to count failed routing attempts (where stations are missing from the Pyrobosim environment).
                 # This will count up to 3 stops ahead before aborting the action.

@@ -326,9 +326,9 @@ class TrainController(Node):
     def route_train_callback(self, goal_handle) -> RouteTrain.Result:
         # TODO race condition resolution if two trains take the same path at the exact same time
         # this is complex to solve and may not be necessary for the scope of the project
-        return self.route_train(goal_handle.request)
+        return self.route_train(goal_handle.request, goal_handle)
 
-    def route_train(self, goal: RouteTrain.Goal):
+    def route_train(self, goal: RouteTrain.Goal, goal_handle=None):
         self.get_logger().info(f"Received goal: {goal.destination}")
         dest_name = goal.destination
         dest_node = self.station_graph.get_node(dest_name)
@@ -337,6 +337,8 @@ class TrainController(Node):
 
         path = self.station_graph.get_path_between_nodes(self.current_position, dest_node)
         self._follow_path_to_destination(path)
+        if goal_handle:
+            goal_handle.succeed()
         return RouteTrain.Result(success=True, arrived=True)
 
     # ------------------------------------------------------------------------------------

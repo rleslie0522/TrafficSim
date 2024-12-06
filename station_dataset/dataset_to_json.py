@@ -47,6 +47,7 @@ lines = {
     "ECML_FIFE": ["Inverkeithing", "Rosyth", "Dunfermline_City", "Dunfermline_Queen_Margaret", "Cowdenbeath", "Lochgelly", "Cardenden", "Glenrothes_with_Thornton", "Markinch"],
     "KDY_LEV": ["Kirkcaldy", "Cameron_Bridge", "Leven"],
     "EDI_PTH": ["Ladybank", "Perth"],
+    "DEE_PTH": ["Dundee", "Invergowrie", "Perth"],
     # HIGHLAND LINES
     "PTH_INV": ["Perth", "Dunkeld_and_Birnam", "Pitlochry", "Blair_Atholl", "Dalwhinnie", "Newtonmore", "Kingussie", "Aviemore", "Carrbridge", "Inverness"],
     "ABD_INV": ["Aberdeen", "Dyce", "Kintore", "Inverurie", "Insch", "Huntly", "Keith", "Elgin", "Forres", "Nairn", "Inverness_Airport", "Inverness"],

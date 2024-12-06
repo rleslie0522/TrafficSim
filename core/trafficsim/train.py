@@ -254,7 +254,7 @@ class TrainController(Node):
     #
     # ------------------------------------------------------------------------------------
     def _follow_path_to_destination(self, path: list[Station]):
-        self.get_logger().info(f"Following path: {path}")
+        self.get_logger().info(f"Following path: {[str(p).split("(")[0].strip() for p in path]}")
         self.robot.executing_nav = True
         for station in path[1:]:
             connection = self.station_graph.get_connection_between_nodes(self.current_position, station)

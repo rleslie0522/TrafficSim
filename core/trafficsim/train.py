@@ -351,8 +351,7 @@ class TrainController(Node):
         # Runs indefinitely until the train cannot find anymore services to run.
         while True:
             # Get current robot location.
-            current_location = str(self.robot.location).replace('Room: ', "")
-            origin = str(current_location)
+            origin = str(self.current_position.name)
 
             # Create client for RailTrafficScheduler Next Departure Service.
             next_service = self.create_client(
@@ -362,7 +361,7 @@ class TrainController(Node):
 
             # Request next departure from current location of robot.
             req = CRSDepartureLookup.Request()
-            req.origin = str(current_location)
+            req.origin = str(origin)
             req.lookup_only = False
 
             future = next_service.call_async(req)

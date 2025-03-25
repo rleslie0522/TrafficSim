@@ -1,9 +1,7 @@
-## :warning: IMPORTANT - Read below:
+Cloning this folder will create a folder named `TrafficSim` on your system. If this happens, you must type the following to correct the name of the folder to match the package name:
 
-Cloning this folder will create a folder named `CS4048_GroupProject` on your system. If this happens, you must type the following to correct the name of the folder to match the package name:
-
-1. `cd path/to/CS4048_GroupProject/..` or `cd parent/path/of/CS4048_GroupProject`
-2. `mv CS4048_GroupProject/ trafficsim/`
+1. `cd path/to/TrafficSim/..` or `cd parent/path/of/TrafficSim`
+2. `mv TrafficSim/trafficsim/`
 3. `mv trafficsim/ path/to/ros2_ws/src`
 
 &nbsp;
@@ -12,7 +10,7 @@ Cloning this folder will create a folder named `CS4048_GroupProject` on your sys
 
 &nbsp;
 
-# CS4048 - Group 3 - Scottish Rail Traffic Simulator
+# TrafficSim - A package for simulating the Scottish Rail Network in ROS2.
 
 ## Dependencies
 

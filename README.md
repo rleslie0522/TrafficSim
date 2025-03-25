@@ -1,7 +1,7 @@
 Cloning this folder will create a folder named `TrafficSim` on your system. If this happens, you must type the following to correct the name of the folder to match the package name:
 
 1. `cd path/to/TrafficSim/..` or `cd parent/path/of/TrafficSim`
-2. `mv TrafficSim/trafficsim/`
+2. `mv TrafficSim/ trafficsim/`
 3. `mv trafficsim/ path/to/ros2_ws/src`
 
 &nbsp;
